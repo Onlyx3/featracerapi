@@ -1,0 +1,17 @@
+InitializeProject(path)
+-create temporal folder for datasets etc
+-create DB with assets
+-extract assets and mappings in current state
+-create training dataset
+-
+
+Predict(commitHash)
+-get assets that changed in commit
+-create testdataset
+-predict for each asset in test dataset
+-return suggested list
+
+UpdateDataset(Map<assetID,List<string> features)
+-create mappings for given assets
+-recreate ARFF dataset
+-train
