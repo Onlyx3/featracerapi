@@ -76,46 +76,7 @@ CREATE TABLE `datasets` (
                             `testCommitIndex` int DEFAULT NULL,
                             `testCommitHash` TEXT DEFAULT NULL
 );
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `assertmapping_insert`(
-asset TEXT,
-assetType TEXT,
-parent TEXT,
-feature TEXT,
-project TEXT,
-annotationType TEXT,
-commitHash TEXT,
-commitIndex int,
-developer TEXT
-);
-BEGIN
-if not exists (select 1 from `featracerdb`.`assetmapping` where `assetfullname`=asset and `featurename`=feature and `annotationType`=annotationType and `project`=project)
-then
-insert into `featracerdb`.`assetmapping` (
-`assetfullname`,
-`assetType`,
-`parent`,
-`featurename`,
-`project`,
-`annotationType`,
-`commitHash`,
-`commitIndex`,
-`developer`
-);
-values (
-           asset,
-           assetType,
-           parent,
-           feature,
-           project,
-           annotationType,
-           commitHash,
-           commitIndex,
-           developer
-       );
-end if;
-END ;;
-DELIMITER ;
+
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `assetmapping_loadforcommit`(cIndex int, project TEXT)
 BEGIN
@@ -232,53 +193,7 @@ delete from assets where project=prjt and commitHash=cHash;
 delete from assetmapping where project=prjt and commitHash=cHash;
 END ;;
 DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `asset_insert`(
-assetFullName TEXT ,
-assetName TEXT ,
-parent TEXT ,
-commitHash TEXT ,
-commitIndex int,
-developer TEXT ,
-assetType TEXT ,
-startingLine int ,
-endingLine int ,
-lineNumber int,
-project TEXT,
-changeType TEXT,
-loc int
-);
-BEGIN
-INSERT INTO `featracerdb`.`assets`
-(`assetFullName`,
- `assetName`,
- `parent`,
- `commitHash`,
- `commitIndex`,
- `developer`,
- `assetType`,
- `startingLine`,
- `endingLine`,
- `lineNumber`,
- `project`,
- `changeType`,
- `nloc`)
-VALUES
-    (assetFullName,
-     assetName,
-     parent,
-     commitHash,
-     commitIndex,
-     developer,
-     assetType,
-     startingLine,
-     endingLine,
-     lineNumber,
-     project,
-     changeType,
-     loc);
-END ;;
-DELIMITER ;
+
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `asset_loadcommitsanddevs`(cIndex int, prjt TEXT)
 BEGIN

@@ -1,32 +1,67 @@
 package se.gu.data;
 
+import com.mysql.cj.x.protobuf.MysqlxPrepare;
+import org.apache.lucene.analysis.util.ResourceLoader;
 import se.gu.assets.*;
 import se.gu.git.Commit;
 import se.gu.main.Configuration;
 import se.gu.metrics.AssetMetricsDB;
 
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class DataController {
 
 
     private Connection connection;
-    private String[] connectionURL;
+    private static final String connectionURL = "jdbc:sqlite:featracer.db";
 
     public DataController(Configuration configuration) throws SQLException, ClassNotFoundException {
-        Class.forName("com.mysql.cj.jdbc.Driver");
+       /* Class.forName("com.mysql.cj.jdbc.Driver");
         connectionURL = configuration.getDataBaseConnectionString().split(",");
-        connection = getConnection();
+        connection = getConnection(); */
+        connection = DriverManager.getConnection(connectionURL);
+        if(connection != null && isDatabaseNew()) initSQLite();
 
+        }
+
+
+    private void initSQLite() throws SQLException {
+
+        String schema; // Read the schema.sql from resources
+        try {
+            schema = new String(Files.readAllBytes(Paths.get(DataController.class.getClassLoader().getResource("schema.sql").toURI())));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+
+        // Split and execute the statements from schema.sql
+        Statement statement = connection.createStatement();
+        for (String c : schema.split(";")) {
+            c = c.trim();
+            if(!c.isEmpty()) statement.executeUpdate(c);
+        }
+
+    }
+
+    // Return false if database has not been initialized
+    private boolean isDatabaseNew() throws SQLException {
+        String check = "SELECT name FROM sqlite_schema WHERE type='table'";
+        Connection connection = getConnection();
+        try (Statement statement = connection.createStatement()) {
+            ResultSet resultSet = statement.executeQuery(check);
+            return !resultSet.next();
+        }
     }
 
     //==========NEW WINE relying on DB=============================
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(connectionURL[0], connectionURL[1], connectionURL[2]);
+        return connection;
     }
 
     public void closeConnection() throws SQLException {
@@ -37,9 +72,13 @@ public class DataController {
 
     //add asset
     public boolean assertInsert(String assetFullName, String assetName, String parent, String commitHash, int commitIndex, String developer, String assetType, int startingLine, int endLine, int lineNumber, String project, String changeType, int nloc) throws SQLException {
-        String query = "{CALL asset_insert (?,?,?,?,?,?,?,?,?,?,?,?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "INSERT INTO assets (" +
+                "assetFullName, assetName, parent, commitHash, commitIndex, developer, " +
+                "assetType, startingLine, endingLine, lineNumber, project, changeType, nloc" +
+                ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        PreparedStatement statement = connection.prepareStatement(sql);
+
         statement.setString(1, assetFullName);
         statement.setString(2, assetName);
         statement.setString(3, parent);
@@ -55,13 +94,23 @@ public class DataController {
         statement.setInt(13, nloc);
 
         return statement.executeUpdate() > 0;
-
     }
 
     public boolean assertMappingInsert(String assetFullName, String assetType, String parent, String feature, String project, String annotationType, String commitHash, int commitIndex, String developer) throws SQLException {
-        String query = "{CALL assertmapping_insert (?,?,?,?,?,?,?,?,?) }";
+        // Check if already in db
+        String query = "SELECT 1 FROM assetmapping WHERE assetfullname = ? AND featurename = ? AND annotationType = ? AND project = ?";
 
-        CallableStatement statement = connection.prepareCall(query);
+        PreparedStatement queryStatement = connection.prepareStatement(query);
+        queryStatement.setString(1, assetFullName);
+        queryStatement.setString(2, feature);
+        queryStatement.setString(3, annotationType);
+        queryStatement.setString(4, project);
+        ResultSet resultSet = queryStatement.executeQuery();
+        if(resultSet.next()) return false;
+
+        // insert part
+        String sql = "INSERT INTO assetmapping (assetfullname, assetType, parent, featurename, project, annotationType, commitHash, commitIndex, developer) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, assetFullName);
         statement.setString(2, assetType);
         statement.setString(3, parent);
@@ -71,7 +120,6 @@ public class DataController {
         statement.setString(7, commitHash);
         statement.setInt(8, commitIndex);
         statement.setString(9, developer);
-
 
         return statement.executeUpdate() > 0;
 
@@ -290,7 +338,6 @@ public class DataController {
         return statement.executeUpdate() > 0;
     }
 
-
     public boolean renameAssetAndChildren(String oldName, String newName) throws SQLException {
         String query = "{CALL asset_rename (?,?) }";
 
@@ -330,6 +377,7 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
+
     public boolean deleteAllPSResults() throws SQLException {
         String query = "{CALL psresults_deleteAll }";
 
@@ -338,6 +386,7 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
+
     public boolean deleteAssetsForCommit(String commit, String project) throws SQLException {
         String query = "{CALL assets_deleteforcommit (?,?) }";
 
@@ -473,6 +522,7 @@ public class DataController {
         return records;
 
     }
+
     public List<AssetMetricsDB> getFeatureModifiedPerCommitInProject(String project) throws SQLException {
         String query = "{CALL features_loadforproject (?) }";
 
@@ -511,7 +561,9 @@ public class DataController {
 
         return records;
 
-    }public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
+    }
+
+    public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
         String query = "{CALL commit_loadcccperproject (?) }";
 
         CallableStatement statement = connection.prepareCall(query);
@@ -530,6 +582,7 @@ public class DataController {
         return records;
 
     }
+
     public List<AssetMetricsDB> getDeveloperContribution(int commitIndex, String project) throws SQLException {
         String query = "{CALL dev_loadcontforcommit (?,?) }";
 
@@ -548,7 +601,9 @@ public class DataController {
 
         return records;
 
-    }public void cleanFeatures() throws SQLException {
+    }
+
+    public void cleanFeatures() throws SQLException {
         String query = "{CALL data_cleaning_all (?) }";
 
         CallableStatement statement = connection.prepareCall(query);
@@ -558,6 +613,7 @@ public class DataController {
         statement.execute();
 
     }
+
     public void deleteMappings(String feature) throws SQLException {
         String query = "{CALL assetmappings_deleteforfeature (?) }";
 
@@ -568,6 +624,7 @@ public class DataController {
         statement.execute();
 
     }
+
     public void updateFeatureMapping(String oldFeature, String newFeature) throws SQLException {
         String query = "{CALL assetmappings_updatefeature (?,?) }";
 
@@ -579,6 +636,7 @@ public class DataController {
         statement.executeUpdate();
 
     }
+
     public List<String> getAllFeatures() throws SQLException {
         String query = "{CALL features_loadall }";
 
@@ -595,6 +653,7 @@ public class DataController {
         return records;
 
     }
+
     public ResultSet getAssetCountPerCOmmitAllProjects() throws SQLException {
         String query = "{CALL assetCount_loadall}";
         CallableStatement statement = connection.prepareCall(query);
@@ -602,6 +661,7 @@ public class DataController {
 
 
     }
+
     public List<String> getCommitsInWhichAssetChanged(int commitIndex, String asset) throws SQLException {
         String query = "{CALL commits_loadforasset (?,?) }";
 
@@ -669,6 +729,7 @@ public class DataController {
         return records;
 
     }
+
     public List<AssetDB> getAssetsForProject(String project) throws SQLException {
         String query = "{CALL assets_loadallforproject (?) }";
 
@@ -757,6 +818,7 @@ public class DataController {
         return records;
 
     }
+
     public List<AssetMappingDB> getAssetMappingsForProject(String project) throws SQLException {
         String query = "{CALL assetmapping_loadforproject (?) }";
 
@@ -786,6 +848,7 @@ public class DataController {
         return records;
 
     }
+
     public List<AssetMappingDB> getAllAssetMappingsForProject(String project) throws SQLException {
         String query = "{CALL mappings_loadforproject (?) }";
 
@@ -1023,5 +1086,6 @@ public class DataController {
         }
 
     }
-
 }
+
+
