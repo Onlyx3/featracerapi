@@ -76,23 +76,8 @@ CREATE TABLE `datasets` (
                             `testCommitIndex` int DEFAULT NULL,
                             `testCommitHash` TEXT DEFAULT NULL
 );
-
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `assetmapping_loadforcommit`(cIndex int, project TEXT)
-BEGIN
-SELECT distinct `assetmapping`.`assetfullname`,
-                `assetmapping`.`assetType`,
-                `assetmapping`.`parent`,
-                `assetmapping`.`featurename`,
-                `assetmapping`.`project`,
-                `assetmapping`.`annotationType`,
-                `assetmapping`.`commitHash`,
-                `assetmapping`.`commitIndex`,
-                `assetmapping`.`developer`
-FROM `featracerdb`.`assetmapping`
-where commitIndex <= cIndex and `project`=project;
-END ;;
-DELIMITER ;
+-- Pain
+/*
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `assetmetrics_insert`(
 asset TEXT ,
@@ -162,101 +147,7 @@ select assetFullName, count(distinct commitHash) as cHash, count(distinct develo
 group by assetFullName;
 END ;;
 DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `assetmetrics_loadallforproject`(prjt TEXT)
-BEGIN
-SELECT `assetmetrics`.`assetFullName`,
-       `assetmetrics`.`assetType`,
-       `assetmetrics`.`assetparent`,
-       `assetmetrics`.`commitHash`,
-       `assetmetrics`.`commitIndex`,
-       `assetmetrics`.`project`,
-       `assetmetrics`.`ismapped`,
-       `assetmetrics`.`csdev`,
-       `assetmetrics`.`ddev`,
-       `assetmetrics`.`comm`,
-       `assetmetrics`.`dcont`,
-       `assetmetrics`.`hdcont`,
-       `assetmetrics`.`ccc`,
-       `assetmetrics`.`accc`,
-       `assetmetrics`.`nloc`,
-       `assetmetrics`.`dnfma`,
-       `assetmetrics`.`nfma`,
-       `assetmetrics`.`nff`
-FROM `featracerdb`.`assetmetrics` where project=prjt;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `assets_deleteforcommit`(cHash TEXT, prjt TEXT)
-BEGIN
-delete from assets where project=prjt and commitHash=cHash;
-delete from assetmapping where project=prjt and commitHash=cHash;
-END ;;
-DELIMITER ;
 
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `asset_loadcommitsanddevs`(cIndex int, prjt TEXT)
-BEGIN
-select distinct assetFullName,developer,commitHash,commitIndex from assets where commitIndex <=cIndex and project=prjt;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `asset_loadforcommit`(cHash TEXT, prjt TEXT)
-BEGIN
-SELECT a.`assetFullName`,
-       a.`assetName`,
-       a.`parent`,
-       a.`commitHash`,
-       a.`developer`,
-       a.`assetType`,
-       a.`startingLine`,
-       a.`endingLine`,
-       a.`lineNumber`,
-       a.`project`,
-       a.`commitIndex`,
-       a.`changeType`,
-       a.nloc
-FROM `featracerdb`.`assets` a
-where `commitHash` = cHash and `project`=prjt;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `asset_rename`(oldname varchar (300),newname  varchar (300))
-BEGIN
-update 	`assets`
-set `assetFullName` = REPLACE(`assetFullName`,oldname,newname)
-where `assetFullName`=oldname;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `commitindex_update`(commitHash TEXT,commitIndex int, project TEXT)
-BEGIN
-update `assets`
-set `commitIndex`=commitIndex
-where `commitHash` = commitHash and `project`=project;
-update `assetmapping`
-set `commitIndex`=commitIndex
-where `commitHash` = commitHash and `project`=project;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `commits_loadall`(projectName TEXT)
-BEGIN
-select distinct commitIndex,commitHash from `assets` where `project`=projectName order by commitIndex;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `commits_loadforasset`(cIndex int, asset TEXT)
-BEGIN
-select commitHash from assets where commitIndex <= cIndex and assetfullname = asset;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `commits_loadfordatasets`(prjt TEXT)
-BEGIN
-select distinct commitIndex, commitHash from assetmetrics where  project=prjt;
-END ;;
-DELIMITER ;
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `commit_loadccc`(cIndex int, p TEXT)
 BEGIN
@@ -281,79 +172,8 @@ SELECT commitIdex,
 FROM featracerdb.datasets where project=prjt;
 END ;;
 DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `dataset_deleteforcommit`(cHash TEXT,prjt TEXT)
-BEGIN
-delete from datasets where commitHash=cHash and project=prjt;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `dataset_insert`(commitIdex int,
-commitHash TEXT,
-project TEXT,
-assetType TEXT,
-trainingFile TEXT,
-testFile TEXT,
-isMappedOnly tinyint,
-trainingXMLFile TEXT,
-testXMLFile TEXT,
-testCSVFile TEXT,
-testCommitIndex int,
-testCommitHash TEXT )
-BEGIN
-INSERT INTO `featracerdb`.`datasets`
-(`commitIdex`,
- `commitHash`,
- `project`,
- `assetType`,
- `trainingFile`,
- `testFile`,
- `isMappedOnly`,
- `trainingXMLFile`,
- `testXMLFile`,
- `testCSVFile`,
- `testCommitIndex`,
- `testCommitHash`
-);
-VALUES
-    (commitIdex,
-     commitHash,
-     project,
-     assetType,
-     trainingFile,
-     testFile,
-     isMappedOnly,
-     trainingXMLFile,
-     testXMLFile,
-     testCSVFile,
-     testCommitIndex,
-     testCommitHash);
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `devs_loadforasset`(cIndex int, asset TEXT)
-BEGIN
-select distinct developer from assets where commitIndex <= cIndex and assetfullname = asset;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `dev_loadcontforcommit`(cIndex int, p TEXT)
-BEGIN
-select count(distinct assetfullname) as DCONT, developer from assets where commitIndex <= cIndex and project=p and assetType='LOC' group by developer;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `features_loadforcommit`(cIndex int, p TEXT)
-BEGIN
-select count(distinct featurename) as NFMA,commitHash from assetmapping where commitIndex <=cIndex and project=p group by commitHash;
-END ;;
-DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `mappings_loadforproject`(prjt TEXT)
-BEGIN
-select distinct assetFullName,assetType,featurename,commitIndex,commitHash from assetmapping where project=prjt;
-END ;;
-DELIMITER ;
+
+
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `metrics_deleteforcommit`(cHash TEXT,prjt varchar (100))
 BEGIN
@@ -419,22 +239,14 @@ VALUES
      nff);
 END ;;
 DELIMITER ;
-DELIMITER ;;
-CREATE DEFINER=`root`@`localhost` PROCEDURE `parent_loadnff`(cIndex int,project TEXT)
-BEGIN
-select count(distinct featurename) as NFF,parent from assetmapping where `commitIndex` <=cIndex and `project`=project group by parent;
-END ;;
-DELIMITER ;
+
 DELIMITER ;;
 CREATE DEFINER=`root`@`localhost` PROCEDURE `parent_loadnloc`(cIndex int,p TEXT)
 BEGIN
 select count(distinct assetfullname) as NLOC,parent from assets where commitIndex <=cIndex and project=p group by parent;
 END ;;
 DELIMITER ;
-
-
-
-
+*/
 
 COMMIT;
 PRAGMA ignore_check_constraints = ON;

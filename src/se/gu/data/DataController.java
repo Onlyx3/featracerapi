@@ -126,9 +126,12 @@ public class DataController {
     }
 
     public boolean datasetInsert(int commitIndex, String commitHash, String project, String assetType, String trainingFile, String testFile, boolean isMappedOnly, String trainingXMLFile, String testXMLFile, String testCSVFile, int testCommitIndex, String testCommitHash) throws SQLException {
-        String query = "{CALL dataset_insert (?,?,?,?,?,?,?,?,?,?,?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "INSERT INTO dataset (commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex, testCommitHash)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement statement = connection.prepareStatement(sql);
+
         statement.setInt(1, commitIndex);
         statement.setString(2, commitHash);
         statement.setString(3, project);
@@ -142,15 +145,18 @@ public class DataController {
         statement.setInt(11, testCommitIndex);
         statement.setString(12, testCommitHash);
 
-
         return statement.executeUpdate() > 0;
-
     }
 
     public boolean assetMetricsInsert(AssetMetricsDB m) throws SQLException {
-        String query = "{CALL assetmetrics_insert (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) }";
+        //String query = "{CALL assetmetrics_insert (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        //CallableStatement statement = connection.prepareCall(query);
+        String sql = "INSERT INTO assetmetrics (assetFullName, assetparent, commitHash, commitIndex, project, ismapped, assetType, csdev, ddev, comm, dcont, hdcont, ccc, accc, nloc, dnfma, nfma, nff)" +
+                " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+        PreparedStatement statement = connection.prepareStatement(sql);
+
         statement.setString(1, m.getAsset());
         statement.setString(2, m.getParent());
         statement.setString(3, m.getCommitHash());
@@ -174,20 +180,20 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
-
+    @Deprecated
     public ResultSet getCommitMetricsResultsMappigAll() throws SQLException {
         String query = "{CALL metrics_resultsmapping_all}";
         CallableStatement statement = connection.prepareCall(query);
         return statement.executeQuery();
     }
-
+    @Deprecated
     public ResultSet getCommitMetricsResultsMappigByLevel(String level) throws SQLException {
         String query = "{CALL metrics_resultsmapping_bylevel (?)}";
         CallableStatement statement = connection.prepareCall(query);
         statement.setString(1, level);
         return statement.executeQuery();
     }
-
+    @Deprecated
     public ResultSet getCommitMetricsResultsMappigByProjectLevel(String project, String level) throws SQLException {
         String query = "{CALL metrics_resultsmapping_byprojectlevel (?,?)}";
         CallableStatement statement = connection.prepareCall(query);
@@ -195,7 +201,7 @@ public class DataController {
         statement.setString(2, level);
         return statement.executeQuery();
     }
-
+    @Deprecated
     public boolean resultsSummaryInsert(
             String project,
             String commitHash,
@@ -221,7 +227,7 @@ public class DataController {
 
         return statement.executeUpdate() > 0;
     }
-
+    @Deprecated
     public boolean commitMetricsInsertFromDB(
             double tAA,
             double tUA,
@@ -259,7 +265,7 @@ public class DataController {
 
         return statement.executeUpdate() > 0;
     }
-
+    @Deprecated
     public boolean commitMetricsInsertFromCode(
             double tLA,
             double tLR,
@@ -307,7 +313,7 @@ public class DataController {
 
         return statement.executeUpdate() > 0;
     }
-
+    @Deprecated
     public boolean psresultsInsert(
             int commitIndex,
             String commitHash,
@@ -339,25 +345,27 @@ public class DataController {
     }
 
     public boolean renameAssetAndChildren(String oldName, String newName) throws SQLException {
-        String query = "{CALL asset_rename (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "UPDATE assets SET assetFullName = REPLACE(?,?) WHERE assetFullName = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, oldName);
         statement.setString(2, newName);
-        return statement.executeUpdate() > 0;
+        statement.setString(3, oldName);
 
+        return statement.executeUpdate() > 0;
     }
 
     public boolean deleteMetricsForCommit(String commit, String project) throws SQLException {
-        String query = "{CALL metrics_deleteforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
-        statement.setString(1, commit);
-        statement.setString(2, project);
+        String sql = "DELETE FROM assetmetrics WHERE project = ? AND commitHash = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1, project);
+        statement.setString(2, commit);
+
         return statement.executeUpdate() > 0;
 
     }
-
+    @Deprecated
     public boolean deleteResults(String project, String codeLevel, int metrics) throws SQLException {
         String query = "{CALL results_delete (?,?,?) }";
 
@@ -368,7 +376,7 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
-
+    @Deprecated
     public boolean deleteAllResults() throws SQLException {
         String query = "{CALL results_delete_all }";
 
@@ -377,7 +385,7 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
-
+    @Deprecated
     public boolean deleteAllPSResults() throws SQLException {
         String query = "{CALL psresults_deleteAll }";
 
@@ -388,19 +396,29 @@ public class DataController {
     }
 
     public boolean deleteAssetsForCommit(String commit, String project) throws SQLException {
-        String query = "{CALL assets_deleteforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
-        statement.setString(1, commit);
-        statement.setString(2, project);
-        return statement.executeUpdate() > 0;
+        String sql1 = "DELETE FROM assets WHERE project = ? AND commitHash = ?";
+        String sql2 = "DELETE FROM assetmapping WHERE project = ? AND commitHash = ?";
 
+        PreparedStatement statement1 = connection.prepareStatement(sql1);
+        PreparedStatement statement2 = connection.prepareStatement(sql2);
+
+        statement1.setString(1, project);
+        statement1.setString(2, commit);
+        int res1 = statement1.executeUpdate();
+
+        statement2.setString(1, project);
+        statement2.setString(2, commit);
+        int res2 = statement2.executeUpdate();
+
+        return res1 >0 || res2 > 0;
     }
 
     public boolean deleteDatasetsForCommit(String commit, String project) throws SQLException {
-        String query = "{CALL dataset_deleteforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "DELETE FROM datasets WHERE commitHash = ? AND project = ?";
+
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, commit);
         statement.setString(2, project);
         return statement.executeUpdate() > 0;
@@ -408,20 +426,30 @@ public class DataController {
     }
 
     public boolean updateCommitIndex(String commitHash, int commitIndex, String project) throws SQLException {
-        String query = "{CALL commitindex_update (?,?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
-        statement.setString(1, commitHash);
-        statement.setInt(2, commitIndex);
-        statement.setString(3, project);
-        return statement.executeUpdate() > 0;
+        String sql1 = "UPDATE assets SET commitIndex = ? WHERE commitHash = ? AND project = ?";
+        String sql2 = "UPDATE assetmapping SET commitIndex = ? WHERE commitHash = ? AND project = ?";
 
+        PreparedStatement statement1 = connection.prepareStatement(sql1);
+        PreparedStatement statement2 = connection.prepareStatement(sql2);
+
+        statement1.setInt(1, commitIndex);
+        statement1.setString(2, commitHash);
+        statement1.setString(3, project);
+        int res1 = statement1.executeUpdate();
+
+        statement2.setInt(1, commitIndex);
+        statement2.setString(2, commitHash);
+        statement2.setString(3, project);
+        int res2 = statement2.executeUpdate();
+
+        return res1 >0 || res2 > 0;
     }
 
     public List<Commit> getAllCommits(String project) throws SQLException {
-        String query = "{CALL commits_loadall (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT DISTINCT commitIndex, commitHash FROM assets WHERE project = ? ORDER BY commitIndex";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, project);
 
         ResultSet resultSet = statement.executeQuery();
@@ -435,9 +463,9 @@ public class DataController {
     }
 
     public List<Commit> getAllCommitsWithMetrics(String project) throws SQLException {
-        String query = "{CALL commits_loadfordatasets (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT DISTINCT commitIndex, commitHash FROM assetmetrics WHERE project = ?;";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, project);
 
 
@@ -452,9 +480,10 @@ public class DataController {
     }
 
     public List<DataSetRecord> getAllDataSetsForProject(String project) throws SQLException {
-        String query = "{CALL datasets_loadall (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex" +
+                " testCommitHash FROM datasets WHERE project = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, project);
 
 
@@ -484,9 +513,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getParentNFF(int commitIndex, String project) throws SQLException {
-        String query = "{CALL parent_loadnff (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT COUNT(DISTINCT featurename) as NFF, parent FROM assetmapping WHERE commitIndex <= ? AND project = ? GROUP BY parent";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -504,9 +533,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getFeatureModifiedInCommit(int commitIndex, String project) throws SQLException {
-        String query = "{CALL features_loadforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT COUNT(DISTINCT featurename) AS NFMA, commitHash from assetmapping WHERE commitIndex <= ? AND project = ? GROUP BY commitHash";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -522,7 +551,7 @@ public class DataController {
         return records;
 
     }
-
+    @Deprecated
     public List<AssetMetricsDB> getFeatureModifiedPerCommitInProject(String project) throws SQLException {
         String query = "{CALL features_loadforproject (?) }";
 
@@ -544,9 +573,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getCCCForCommit(int commitIndex, String project) throws SQLException {
-        String query = "{CALL commit_loadccc (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT COUNT(*) AS CCC, commitHash from assets WHERE commitIndex <= ? AND project = ? GROUP BY commitHash";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -562,7 +591,7 @@ public class DataController {
         return records;
 
     }
-
+    @Deprecated
     public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
         String query = "{CALL commit_loadcccperproject (?) }";
 
@@ -584,9 +613,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getDeveloperContribution(int commitIndex, String project) throws SQLException {
-        String query = "{CALL dev_loadcontforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT COUNT(DISTINCT assetfullname) AS DCONT, developer FROM assets WHERE commitIndex <= ? AND project = ? AND assetType = 'LOC' GROUP BY developer";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -602,7 +631,7 @@ public class DataController {
         return records;
 
     }
-
+    @Deprecated
     public void cleanFeatures() throws SQLException {
         String query = "{CALL data_cleaning_all (?) }";
 
@@ -613,7 +642,7 @@ public class DataController {
         statement.execute();
 
     }
-
+    @Deprecated
     public void deleteMappings(String feature) throws SQLException {
         String query = "{CALL assetmappings_deleteforfeature (?) }";
 
@@ -624,7 +653,7 @@ public class DataController {
         statement.execute();
 
     }
-
+    @Deprecated
     public void updateFeatureMapping(String oldFeature, String newFeature) throws SQLException {
         String query = "{CALL assetmappings_updatefeature (?,?) }";
 
@@ -636,7 +665,7 @@ public class DataController {
         statement.executeUpdate();
 
     }
-
+    @Deprecated
     public List<String> getAllFeatures() throws SQLException {
         String query = "{CALL features_loadall }";
 
@@ -653,7 +682,7 @@ public class DataController {
         return records;
 
     }
-
+    @Deprecated
     public ResultSet getAssetCountPerCOmmitAllProjects() throws SQLException {
         String query = "{CALL assetCount_loadall}";
         CallableStatement statement = connection.prepareCall(query);
@@ -663,9 +692,9 @@ public class DataController {
     }
 
     public List<String> getCommitsInWhichAssetChanged(int commitIndex, String asset) throws SQLException {
-        String query = "{CALL commits_loadforasset (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT commitHash FROM assets WHERE commitIndex <= ? AND assetfullname = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, asset);
 
@@ -680,9 +709,9 @@ public class DataController {
     }
 
     public List<String> getDevelopersOfAsset(int commitIndex, String asset) throws SQLException {
-        String query = "{CALL devs_loadforasset (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT DISTINCT developer FROM assets WHERE commitIndex <= ? AND assetfullname = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, asset);
 
@@ -697,9 +726,10 @@ public class DataController {
     }
 
     public List<AssetDB> getAssetsForCommit(String commit, String project) throws SQLException {
-        String query = "{CALL asset_loadforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT assetFullName, assetName, parent, commitHash, developer, assetTYpe, startingLine, endingLine, lineNumber, project, commitIndex, changeType, nloc " +
+                "FROM assets WHERE commitHash = ? AND project = ? ";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, commit);
         statement.setString(2, project);
 
@@ -729,7 +759,7 @@ public class DataController {
         return records;
 
     }
-
+    @Deprecated
     public List<AssetDB> getAssetsForProject(String project) throws SQLException {
         String query = "{CALL assets_loadallforproject (?) }";
 
@@ -764,9 +794,9 @@ public class DataController {
     }
 
     public List<AssetDB> getAllAssetsUptoCommit(int commitIndex, String project) throws SQLException {
-        String query = "{CALL asset_loadcommitsanddevs (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT DISTINCT assetFullName, developer, commitHash, commitIndex FROM assets WHERE commitIndex <= ? AND project = ? ";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -790,9 +820,9 @@ public class DataController {
     }
 
     public List<AssetMappingDB> getAssetMappingsForCommit(int commitIndex, String project) throws SQLException {
-        String query = "{CALL assetmapping_loadforcommit (?,?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT DISTINCT assetfullname, assetType, parent, featurename, project, annotateType, commitHash, commitIndex, developer FROM assetmapping WHERE commitIndex <= ? AND project = ? ";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setInt(1, commitIndex);
         statement.setString(2, project);
 
@@ -850,10 +880,9 @@ public class DataController {
     }
 
     public List<AssetMappingDB> getAllAssetMappingsForProject(String project) throws SQLException {
-        String query = "{CALL mappings_loadforproject (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
-
+        String sql = "SELECT DISTINCT assetFullName, assetType, featurename, commitIndex, commitHash FROM assetmapping WHERE project = ? ";
+        PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, project);
 
         ResultSet rs = statement.executeQuery();
@@ -876,9 +905,10 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getAllAssetMetricsForProject(String project) throws SQLException {
-        String query = "{CALL assetmetrics_loadallforproject (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+        String sql = "SELECT assetFullName, assetType, assetparent, commitHash, commitIndex, project, ismapped, csdev, ddev, comm, dcont, hdcont, ccc, accc, nloc, dnfma, nfma, nff " +
+                "FROM assetmetrics WHERE project = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
 
         statement.setString(1, project);
 
@@ -923,7 +953,7 @@ public class DataController {
         return statement.executeUpdate() > 0;
 
     }
-
+    @Deprecated
     public Asset addAsset(Asset asset, String parentFullName, String project) throws SQLException {
         String query = "{CALL assetInsert (?,?,?,?,?,?,?,?,?,?,?,?) }";
         CallableStatement statement = connection.prepareCall(query);
@@ -943,7 +973,7 @@ public class DataController {
         statement.executeUpdate();
         return asset;
     }
-
+    @Deprecated
     public boolean mapAssetToFeature(String featureName, String assetFullName, String annotationType, String project, String assetType, int tangled) throws SQLException {
         String query = "{CALL assetFeatureMapInsert (?,?,?,?,?,?)}";
         CallableStatement statement = connection.prepareCall(query);
@@ -1038,7 +1068,7 @@ public class DataController {
     public List<String> getAllMappedFeatures(String project, String file) throws SQLException {
         PreparedStatement query = connection.prepareStatement("SELECT distinct(featureName) as featureName from featureassetmap where project = ? and assetFullyQualifiedName like '%?%'  and featureName not like '%::%' ");
         query.setString(1, project);
-        query.setString(2, file);
+        //query.setString(2, file); TODO: ???
         ResultSet resultSet = query.executeQuery();
         List<String> features = new ArrayList<>();
         while (resultSet.next()) {
