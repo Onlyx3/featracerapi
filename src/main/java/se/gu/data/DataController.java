@@ -37,8 +37,8 @@ public class DataController {
         String schema; // Read the schema.sql from resources
 
         try {
-           // InputStream input = DataController.class.getClassLoader().getResourceAsStream("schema.sql");
-            InputStream input = new FileInputStream("src/main/resources/schema.sql");
+           InputStream input = DataController.class.getClassLoader().getResourceAsStream("schema.sql");
+            //InputStream input = new FileInputStream("src/main/resources/schema.sql");
             schema = new String(input.readAllBytes(), StandardCharsets.UTF_8);
         } catch (Exception e) {
             throw new RuntimeException("Database initialization failed: " + e.getMessage());
@@ -351,7 +351,7 @@ public class DataController {
 
     public boolean renameAssetAndChildren(String oldName, String newName) throws SQLException {
 
-        String sql = "UPDATE assets SET assetFullName = REPLACE(?,?) WHERE assetFullName = ?";
+        String sql = "UPDATE assets SET assetFullName = REPLACE(assetFullName, ?,?) WHERE assetFullName = ?";
         PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, oldName);
         statement.setString(2, newName);
