@@ -1,0 +1,59 @@
+plugins {
+    id 'java'
+}
+
+group = 'se.gu'
+version = '1.0.0'
+
+
+repositories {
+    mavenCentral()
+}
+
+sourceSets {
+    main {
+        resources {
+            srcDirs = ['/src/main/resources']
+        }
+    }
+}
+
+dependencies {
+    // https://mvnrepository.com/artifact/commons-io/commons-io
+    implementation("commons-io:commons-io:2.6")
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
+    implementation("org.apache.commons:commons-lang3:3.9")
+    // https://mvnrepository.com/artifact/org.apache.commons/commons-math3
+    implementation("org.apache.commons:commons-math3:3.6.1")
+
+    // https://mvnrepository.com/artifact/com.google.code.gson/gson
+    implementation("com.google.code.gson:gson:2.8.2")
+    // https://mvnrepository.com/artifact/com.google.guava/guava
+    implementation("com.google.guava:guava:27.1-jre")
+
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-annotations
+    implementation("com.fasterxml.jackson.core:jackson-annotations:2.10.2")
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-core
+    implementation("com.fasterxml.jackson.core:jackson-core:2.10.2")
+    // https://mvnrepository.com/artifact/com.fasterxml.jackson.core/jackson-databind
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.10.2")
+
+    // https://mvnrepository.com/artifact/org.json/json
+    implementation("org.json:json:20180813")
+
+    // https://mvnrepository.com/artifact/mysql/mysql-connector-java
+    //implementation("mysql:mysql-connector-java:8.0.25")
+
+    // https://mvnrepository.com/artifact/org.xerial/sqlite-jdbc
+    implementation("org.xerial:sqlite-jdbc:3.49.1.0")
+
+    // https://mvnrepository.com/artifact/org.apache.lucene/lucene-core
+    implementation("org.apache.lucene:lucene-core:8.7.0")
+    // https://mvnrepository.com/artifact/org.apache.lucene/lucene-analyzers-common
+    implementation("org.apache.lucene:lucene-analyzers-common:8.7.0")
+    // https://mvnrepository.com/artifact/org.apache.lucene/lucene-queryparser
+    implementation("org.apache.lucene:lucene-queryparser:8.7.0")
+
+    // excess libs from /libs
+    implementation fileTree(dir: 'libs', include: ['**/*.jar'])
+}
