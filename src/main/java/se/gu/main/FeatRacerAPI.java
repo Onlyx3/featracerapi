@@ -19,6 +19,7 @@ public class FeatRacerAPI {
      * @param projectPath Path to the project e.g., C:\\users\\gto\\repos\\MyApplication
      *                    THis method will create an analysis folder called FeatRacerAnalysis in your user home directory
      */
+    //TODO: Params: analysis Location, Database Location, (Starting Commit?), put options into configuration
     public void InitializeProject(String projectPath) throws IOException, SQLException, ClassNotFoundException, ParseException {
         //create analysis folder
         Path analysisFolder = Utilities.createOutputDirectory("FeatRacerAnalysis");
@@ -37,6 +38,15 @@ public class FeatRacerAPI {
         //now generate assets at the current state of the project
         ProjectReader projectReader = new ProjectReader(projectData);
         projectReader.createAnnotationsWithoutCommits();
+        // TODO: This is option AWC but during testing we used option D, change to D -> GM -> GDT
+    }
 
+
+    public void InvokeFeatRacer(String commitHash) {
+        //TODO: What is the output format /// Which of the options is this?
+    }
+
+    public void UpdateDataset() {
+        //TODO: Whats the input parameter(s), Whats the option?
     }
 }
