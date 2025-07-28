@@ -94,3 +94,23 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 >>>>>>> 2ea5e70 (initial commit)
+
+/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+/.gradle/buildOutputCleanup/cache.properties
+/.gradle/8.13/checksums/checksums.lock
+/.gradle/8.13/executionHistory/executionHistory.bin
+/.gradle/8.13/executionHistory/executionHistory.lock
+/featracer.db
+/fanas/2/featracerapi_projectDataCounts.csv
+/.gradle/file-system.probe
+/.gradle/8.13/fileHashes/fileHashes.bin
+/.gradle/8.13/fileHashes/fileHashes.lock
+/.gradle/8.13/gc.properties
+/.gradle/vcs-1/gc.properties
+/gradle/wrapper/gradle-wrapper.properties
+/gradlew
+/gradlew.bat
+/.gradle/8.13/fileChanges/last-build.bin
+/.gradle/8.13/checksums/md5-checksums.bin
+/.gradle/buildOutputCleanup/outputFiles.bin
+/.gradle/8.13/checksums/sha1-checksums.bin

@@ -21,6 +21,155 @@ public class MetricCalculatorDB {
         this.projectData = projectData;
     }
 
+    //FIXME holy spaghetti
+    public void calculateMetricsSingle() throws SQLException, ClassNotFoundException {
+        dataController = new DataController(projectData.getConfiguration());
+        AbstractStringMetric metric = new CosineSimilarity();
+        String projectName = projectData.getConfiguration().getProjectRepository().getName();
+        int startingCommitIndex = projectData.getConfiguration().getStartingCommitIndex();
+        int commitsToRun = projectData.getConfiguration().getCommitsToExecute();
+        //get latest commit
+        List<Commit> fullCommitList = dataController.getAllCommits(projectName);
+        Commit relevantCommit = fullCommitList.get(fullCommitList.size()-1);
+        List<Commit> commits = new ArrayList<>();
+        commits.add(relevantCommit);
+        // End Change
+        commitsToRun = commitsToRun == 0 ? commits.size() : commitsToRun;
+        int commitsRun = 0;
+        //get all needed lists
+        List<AssetDB> allAssetsForProject = dataController.getAssetsForProject(projectName); //FIXME the procedure was not part of the database scheme
+        List<AssetMappingDB> assetMappingsForProject = dataController.getAssetMappingsForProject(projectName);
+        List<AssetMetricsDB> allFeaturesPerCommitInProject = dataController.getFeatureModifiedPerCommitInProject(projectName);
+        List<AssetMetricsDB> allCommitCCCsForProject = dataController.getCCCForProject(projectName);
+        List<String> assetTypesAllowed = projectData.getConfiguration().getAssetTypesToPredict();
+        try (ProgressBar pb = new ProgressBar("Commits:", commitsToRun)) {
+            for (Commit commit : commits) {
+                try {
+                    if (commit.getCommitIndex() < startingCommitIndex) {
+                        pb.step();
+                        continue;
+                    }
+                    if (commitsRun > commitsToRun) {
+                        break;
+                    }
+                    //delete existing metrics for commit
+                    try {
+                        dataController.deleteMetricsForCommit(commit.getCommitHash(), projectName);
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                    System.out.printf("%s, commidIndex: %d\n",projectName,commit.getCommitIndex());
+                    //first time, load all assets up to this commit
+//                if (!gotAllAssets) {
+//                    allassetsAtCommit.addAll(dataController.getAllAssetsUptoCommit(commit.getCommitIndex(), projectName));
+//                    gotAllAssets = true;
+//                } else {
+//                    allassetsAtCommit.addAll(assetsInCommit);
+//                }
+                    pb.step();
+                    pb.setExtraMessage(commit.getCommitHash());
+                    //List<AssetMetricsDB> parentNFFs = dataController.getParentNFF(commit.getCommitIndex(), projectName);
+                    Map<String, Double> parentNFF = getParentNFF(assetMappingsForProject,commit.getCommitIndex());
+//                    for (AssetMetricsDB p : parentNFFs) {
+//                        parentNFF.put(p.getParent(), p.getNff());
+//                    }
+                    //Map<String, Integer> parentNLOC = dataController.getParentNLOC(commit.getCommitIndex(), projectName);
+                    //get all assets that changed in commit
+                    List<AssetDB> assetsInCommit = allAssetsForProject.parallelStream().filter(a->a.getCommitHash().equalsIgnoreCase(commit.getCommitHash())).collect(Collectors.toList());
+                    List<AssetDB> allassetsAtCommit = allAssetsForProject.parallelStream().filter(a->a.getCommitIndex()<=commit.getCommitIndex()).collect(Collectors.toList());
+                    List<AssetMappingDB> assetmappings = assetMappingsForProject.parallelStream().filter(a->a.getCommitIndex()<=commit.getCommitIndex()).collect(Collectors.toList());
+                    List<AssetMetricsDB> commitCCCs = allCommitCCCsForProject.parallelStream().filter(c->c.getCommitIndex()<=commit.getCommitIndex()).collect(Collectors.toList());
+                    List<AssetMetricsDB> devContributions = getDeveloperContribution(allAssetsForProject,commit.getCommitIndex()); //dataController.getDeveloperContribution(commit.getCommitIndex(), projectName);
+                    List<AssetMetricsDB> featuresInCommit = allFeaturesPerCommitInProject.parallelStream().filter(f->f.getCommitIndex()<=commit.getCommitIndex()).collect(Collectors.toList());
+                    try (ProgressBar cb = new ProgressBar("Asset Metrics:", assetsInCommit.size())) {
+                        for (AssetDB asset : assetsInCommit) {
+                            try {
+                                cb.step();
+                                cb.setExtraMessage(asset.getAssetName());
+                                List<String> commitInWHichAssetChanged = allassetsAtCommit.parallelStream().filter(a -> a.getAssetFullName().equalsIgnoreCase(asset.getAssetFullName()))
+                                        .map(AssetDB::getCommitHash).distinct().collect(Collectors.toList());
+                                List<String> developersOfAsset = allassetsAtCommit.parallelStream().filter(a -> a.getAssetFullName().equalsIgnoreCase(asset.getAssetFullName()))
+                                        .map(AssetDB::getDeveloper).distinct().collect(Collectors.toList());
+                                AssetMetricsDB metrics = new AssetMetricsDB();
+                                metrics.setAsset(asset.getAssetFullName());
+                                metrics.setProject(projectName);
+                                metrics.setCommitHash(commit.getCommitHash());
+                                metrics.setCommitIndex(commit.getCommitIndex());
+                                metrics.setParent(asset.getParent());
+                                metrics.setAssetType(asset.getAssetType());
+                                Optional<AssetMappingDB> assetMapping = assetmappings.parallelStream().filter(m -> m.getAssetfullname().equalsIgnoreCase(asset.getAssetFullName())).findAny();
+                                metrics.setMapped(assetMapping.isPresent());
+
+                                //number of features in parent file
+                                double nff = 0;
+                                if (asset.getAssetType().equalsIgnoreCase("FILE") || asset.getAssetType().equalsIgnoreCase("FOLDER")) {
+                                    if (parentNFF.containsKey(asset.getAssetFullName())) {
+                                        nff = parentNFF.get(asset.getAssetFullName());
+                                    }
+                                } else if (parentNFF.containsKey(asset.getParent())) {
+                                    nff = parentNFF.get(asset.getParent());
+                                }
+                                //==NFF==
+                                metrics.setNff(nff);
+                                //assets modified together with asset
+                                //==ACC==
+                                metrics.setCcc(assetsInCommit.size());
+                                //average assets modified with asset
+
+                                //==ACC==
+                                double accc = commitCCCs.parallelStream()
+                                        .filter(c -> commitInWHichAssetChanged.contains(c.getCommitHash()))
+                                        .map(AssetMetricsDB::getCcc).mapToDouble(Double::doubleValue).average().orElse(0);
+                                metrics.setAccc(accc);
+                                //==COMM==
+                                metrics.setComm(commitInWHichAssetChanged.size());
+                                //==CSDEV==
+                                double csdev = csDev(developersOfAsset, metric);
+                                metrics.setCsvDev(csdev);
+
+                                //==DDEV==
+                                metrics.setDdev(developersOfAsset.size());
+
+                                //==DCONT==
+                                List<Double> assetContributions = devContributions.parallelStream()
+                                        .filter(d -> developersOfAsset.contains(d.getDeveloper()))
+                                        .map(AssetMetricsDB::getDcont).collect(Collectors.toList());
+                                double dcont = assetContributions.parallelStream().mapToDouble(Double::doubleValue).average().orElse(0);
+                                metrics.setDcont(dcont);
+
+                                //==HDCONT==
+                                double hdcont = assetContributions.parallelStream().mapToDouble(Double::doubleValue).max().orElse(0);
+                                metrics.setHdcont(hdcont);
+                                //==NLOC==
+                                metrics.setNloc(asset.getNloc());
+
+                                //==DNFMA==
+                                double dnfma = featuresInCommit.parallelStream().filter(f -> commitInWHichAssetChanged.contains(f.getCommitHash())).map(AssetMetricsDB::getNfma).mapToDouble(Double::doubleValue).average().orElse(0);
+                                metrics.setDnfma(dnfma);
+                                //==NFMA==
+                                double nfma = featuresInCommit.parallelStream().filter(f -> f.getCommitHash().equalsIgnoreCase(commit.getCommitHash())).map(AssetMetricsDB::getNfma).mapToDouble(Double::doubleValue).sum();
+                                metrics.setNfma(nfma);
+                                dataController.assetMetricsInsert(metrics);
+
+                            }catch (Exception ex){
+                                ex.printStackTrace();
+                            }
+                        }
+                    }
+                    commitsRun++;
+                    assetsInCommit = null;
+                    allassetsAtCommit = null;
+                    assetmappings = null;
+                    commitCCCs = null;
+                    devContributions = null;
+                    featuresInCommit = null;
+                }catch (Exception ex){
+                    ex.printStackTrace();
+                }
+            }
+        }
+    }
+
 
     public void calculateMetricsALLASSETSLOADED() throws SQLException, ClassNotFoundException {
         dataController = new DataController(projectData.getConfiguration());

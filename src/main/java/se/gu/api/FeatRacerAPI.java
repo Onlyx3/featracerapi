@@ -89,7 +89,8 @@ public class FeatRacerAPI {
     }
 
     private void GMsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
-
+        MetricCalculatorDB metricCalculatordb = new MetricCalculatorDB(projectData);
+        metricCalculatordb.calculateMetricsSingle();
     }
 
     private void GDTsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {

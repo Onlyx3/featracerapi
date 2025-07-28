@@ -33,7 +33,7 @@ public class CommitReaderWithDriller implements Study {
             new RepositoryMining()
                     .in(GitRepository.singleProject(projectData.getConfiguration().getProjectRepository().getAbsolutePath()))
                     .through(Commits.single(commitHash))
-                    .process(new ProjectDBVisitor(projectData,1,commitHashes),new CSVFile(csvFile))
+                    .process(new ProjectDBVisitor(projectData,1,commitHashes),new CSVFile(csvFile)) // Assumption: ProjectDBVisitor works as it is
                     .mine();
         } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException(e);
