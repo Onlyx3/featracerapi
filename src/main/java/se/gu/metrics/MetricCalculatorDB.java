@@ -22,26 +22,33 @@ public class MetricCalculatorDB {
     }
 
     //FIXME holy spaghetti
-    public void calculateMetricsSingle() throws SQLException, ClassNotFoundException {
+    public void calculateMetricsSingle(String recentCommitHash) throws SQLException, ClassNotFoundException {
         dataController = new DataController(projectData.getConfiguration());
         AbstractStringMetric metric = new CosineSimilarity();
         String projectName = projectData.getConfiguration().getProjectRepository().getName();
         int startingCommitIndex = projectData.getConfiguration().getStartingCommitIndex();
         int commitsToRun = projectData.getConfiguration().getCommitsToExecute();
-        //get latest commit
+
+        //get latest commit from database
         List<Commit> fullCommitList = dataController.getAllCommits(projectName);
         Commit relevantCommit = fullCommitList.get(fullCommitList.size()-1);
+
+        // Check if latest commit in database matches with the to be handled commit hash
+        if(!relevantCommit.getCommitHash().equals(recentCommitHash)) throw new IllegalStateException("MetricCalculatorDB: commitHash mismatch in database");
+
         List<Commit> commits = new ArrayList<>();
         commits.add(relevantCommit);
-        // End Change
+
+        // Progressbar
         commitsToRun = commitsToRun == 0 ? commits.size() : commitsToRun;
         int commitsRun = 0;
+
         //get all needed lists
         List<AssetDB> allAssetsForProject = dataController.getAssetsForProject(projectName);
         List<AssetMappingDB> assetMappingsForProject = dataController.getAssetMappingsForProject(projectName);
         List<AssetMetricsDB> allFeaturesPerCommitInProject = dataController.getFeatureModifiedPerCommitInProject(projectName);
         List<AssetMetricsDB> allCommitCCCsForProject = dataController.getCCCForProject(projectName);
-        List<String> assetTypesAllowed = projectData.getConfiguration().getAssetTypesToPredict();
+       // List<String> assetTypesAllowed = projectData.getConfiguration().getAssetTypesToPredict();
         try (ProgressBar pb = new ProgressBar("Commits:", commitsToRun)) {
             for (Commit commit : commits) {
                 try {
