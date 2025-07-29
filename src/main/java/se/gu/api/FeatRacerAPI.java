@@ -88,9 +88,9 @@ public class FeatRacerAPI {
         repoDriller.start(new CommitReaderWithDriller(projectData, commitHash));
     }
 
-    private void GMsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
+    private void GMsingle(ProjectData projectData, String commitHash) throws SQLException, IOException, ClassNotFoundException {
         MetricCalculatorDB metricCalculatordb = new MetricCalculatorDB(projectData);
-        metricCalculatordb.calculateMetricsSingle();
+        metricCalculatordb.calculateMetricsSingle(commitHash);
     }
 
     private void GDTsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
