@@ -556,11 +556,11 @@ public class DataController {
         return records;
 
     }
-    @Deprecated
-    public List<AssetMetricsDB> getFeatureModifiedPerCommitInProject(String project) throws SQLException {
-        String query = "{CALL features_loadforproject (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+    public List<AssetMetricsDB> getFeatureModifiedPerCommitInProject(String project) throws SQLException {
+        String query = "{SELECT COUNT(DISTINCT featurename) AS NFMA, commitHash FROM assetmapping WHERE project = ? GROUP BY commitHash}";
+
+        PreparedStatement statement = connection.prepareCall(query);
 
         statement.setString(1, project);
 
@@ -596,11 +596,11 @@ public class DataController {
         return records;
 
     }
-    @Deprecated
-    public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
-        String query = "{CALL commit_loadcccperproject (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+    public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
+        String query = "{SELECT COUNT(*) AS CCC, commitHash from assets WHERE project = ? GROUP BY commitHash}";
+
+        PreparedStatement statement = connection.prepareCall(query);
 
         statement.setString(1, project);
 
@@ -764,11 +764,12 @@ public class DataController {
         return records;
 
     }
-    @Deprecated
-    public List<AssetDB> getAssetsForProject(String project) throws SQLException {
-        String query = "{CALL assets_loadallforproject (?) }";
 
-        CallableStatement statement = connection.prepareCall(query);
+    public List<AssetDB> getAssetsForProject(String project) throws SQLException {
+        String query = "{SELECT assetFullName, assetName, parent, commitHash, developer, assetType, project, changeType, startingLine, endingLine, lineNumber, commitIndex, nloc " +
+                "FROM assets WHERE project = ?}";
+
+        PreparedStatement statement = connection.prepareCall(query);
         statement.setString(1, project);
 
         ResultSet rs = statement.executeQuery();

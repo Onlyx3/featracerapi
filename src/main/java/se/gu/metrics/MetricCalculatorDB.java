@@ -37,7 +37,7 @@ public class MetricCalculatorDB {
         commitsToRun = commitsToRun == 0 ? commits.size() : commitsToRun;
         int commitsRun = 0;
         //get all needed lists
-        List<AssetDB> allAssetsForProject = dataController.getAssetsForProject(projectName); //FIXME the procedure was not part of the database scheme
+        List<AssetDB> allAssetsForProject = dataController.getAssetsForProject(projectName);
         List<AssetMappingDB> assetMappingsForProject = dataController.getAssetMappingsForProject(projectName);
         List<AssetMetricsDB> allFeaturesPerCommitInProject = dataController.getFeatureModifiedPerCommitInProject(projectName);
         List<AssetMetricsDB> allCommitCCCsForProject = dataController.getCCCForProject(projectName);
