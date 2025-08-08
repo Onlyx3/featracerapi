@@ -35,7 +35,7 @@ public class ProjectDBVisitor implements CommitVisitor {
         this.commitCount = commitCount;
         this.commitHashes = commitHashes;
 
-
+        //dataController = new DataController(projectData.getConfiguration());
     }
 
 

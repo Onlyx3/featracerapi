@@ -1,7 +1,6 @@
 package se.gu.ml.experiment;
 
 import com.google.common.base.Stopwatch;
-import se.gu.ml.alg.*;
 import me.tongfei.progressbar.ProgressBar;
 import mulan.classifier.MultiLabelLearnerBase;
 import mulan.classifier.MultiLabelOutput;

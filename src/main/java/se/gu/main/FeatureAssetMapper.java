@@ -301,9 +301,6 @@ public class FeatureAssetMapper implements Serializable {
 
         }
     }
-public void deleteAssetFromDatabase(String fileName) throws SQLException {
-        projectData.getDataController().deleteAssetAndChildren(fileName);
-}
     public void resetChildren(String fileName, ModificationType type) {
 //        Set<String> keysForFile = projectData.getMlDataSet().keySet().stream().filter(k->k.contains(fileName)).collect(Collectors.toSet());
 //        for(String key:keysForFile){

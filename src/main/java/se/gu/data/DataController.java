@@ -132,7 +132,7 @@ public class DataController {
 
     public boolean datasetInsert(int commitIndex, String commitHash, String project, String assetType, String trainingFile, String testFile, boolean isMappedOnly, String trainingXMLFile, String testXMLFile, String testCSVFile, int testCommitIndex, String testCommitHash) throws SQLException {
 
-        String sql = "INSERT INTO dataset (commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex, testCommitHash)" +
+        String sql = "INSERT INTO datasets (commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex, testCommitHash)" +
                 " VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         PreparedStatement statement = connection.prepareStatement(sql);
@@ -486,7 +486,7 @@ public class DataController {
 
     public List<DataSetRecord> getAllDataSetsForProject(String project) throws SQLException {
 
-        String sql = "SELECT commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex" +
+        String sql = "SELECT commitIdex, commitHash, project, assetType, trainingFile, testFile, isMappedOnly, trainingXMLFile, testXMLFile, testCSVFile, testCommitIndex," +
                 " testCommitHash FROM datasets WHERE project = ?";
         PreparedStatement statement = connection.prepareStatement(sql);
         statement.setString(1, project);
@@ -558,9 +558,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getFeatureModifiedPerCommitInProject(String project) throws SQLException {
-        String query = "{SELECT COUNT(DISTINCT featurename) AS NFMA, commitHash FROM assetmapping WHERE project = ? GROUP BY commitHash}";
+        String query = "SELECT COUNT(DISTINCT featurename) AS NFMA, commitHash FROM assetmapping WHERE project = ? GROUP BY commitHash";
 
-        PreparedStatement statement = connection.prepareCall(query);
+        PreparedStatement statement = connection.prepareStatement(query);
 
         statement.setString(1, project);
 
@@ -598,9 +598,9 @@ public class DataController {
     }
 
     public List<AssetMetricsDB> getCCCForProject(String project) throws SQLException {
-        String query = "{SELECT COUNT(*) AS CCC, commitHash from assets WHERE project = ? GROUP BY commitHash}";
+        String query = "SELECT COUNT(*) AS CCC, commitHash from assets WHERE project = ? GROUP BY commitHash";
 
-        PreparedStatement statement = connection.prepareCall(query);
+        PreparedStatement statement = connection.prepareStatement(query);
 
         statement.setString(1, project);
 
@@ -766,10 +766,10 @@ public class DataController {
     }
 
     public List<AssetDB> getAssetsForProject(String project) throws SQLException {
-        String query = "{SELECT assetFullName, assetName, parent, commitHash, developer, assetType, project, changeType, startingLine, endingLine, lineNumber, commitIndex, nloc " +
-                "FROM assets WHERE project = ?}";
+        String query = "SELECT assetFullName, assetName, parent, commitHash, developer, assetType, project, changeType, startingLine, endingLine, lineNumber, commitIndex, nloc " +
+                "FROM assets WHERE project = ?";
 
-        PreparedStatement statement = connection.prepareCall(query);
+        PreparedStatement statement = connection.prepareStatement(query);
         statement.setString(1, project);
 
         ResultSet rs = statement.executeQuery();
@@ -856,9 +856,9 @@ public class DataController {
     }
 
     public List<AssetMappingDB> getAssetMappingsForProject(String project) throws SQLException {
-        String query = "{CALL assetmapping_loadforproject (?) }";
+        String query = "SELECT DISTINCT assetfullname, assetType, parent, featurename, project, annotationType, commitHash, commitIndex, developer FROM assetmapping WHERE project = ?";
 
-        CallableStatement statement = connection.prepareCall(query);
+        PreparedStatement statement = connection.prepareStatement(query);
 
         statement.setString(1, project);
 
@@ -951,14 +951,7 @@ public class DataController {
     }
 
     //==========END nEW WINE==================================
-    public boolean deleteAssetAndChildren(String fullName) throws SQLException {
-        String query = "{CALL deleteAsset {?}";
-
-        CallableStatement statement = connection.prepareCall(query);
-        statement.setString(1, fullName);
-        return statement.executeUpdate() > 0;
-
-    }
+    //TODO: FIX DB
     @Deprecated
     public Asset addAsset(Asset asset, String parentFullName, String project) throws SQLException {
         String query = "{CALL assetInsert (?,?,?,?,?,?,?,?,?,?,?,?) }";

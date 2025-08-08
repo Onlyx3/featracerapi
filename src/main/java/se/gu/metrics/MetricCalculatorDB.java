@@ -21,7 +21,7 @@ public class MetricCalculatorDB {
         this.projectData = projectData;
     }
 
-    //FIXME holy spaghetti
+
     public void calculateMetricsSingle(String recentCommitHash) throws SQLException, ClassNotFoundException {
         dataController = new DataController(projectData.getConfiguration());
         AbstractStringMetric metric = new CosineSimilarity();
@@ -34,7 +34,7 @@ public class MetricCalculatorDB {
         Commit relevantCommit = fullCommitList.get(fullCommitList.size()-1);
 
         // Check if latest commit in database matches with the to be handled commit hash
-        if(!relevantCommit.getCommitHash().equals(recentCommitHash)) throw new IllegalStateException("MetricCalculatorDB: commitHash mismatch in database");
+        if(!relevantCommit.getCommitHash().equals(recentCommitHash)) throw new IllegalStateException("MetricCalculatorDB: commitHash mismatch in database"); // TODO handle differently
 
         List<Commit> commits = new ArrayList<>();
         commits.add(relevantCommit);

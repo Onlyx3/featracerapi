@@ -19,6 +19,8 @@ sourceSets {
 }
 
 dependencies {
+    // weka
+    implementation("nz.ac.waikato.cms.weka:weka-stable:3.8.6")
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation("commons-io:commons-io:2.6")
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3

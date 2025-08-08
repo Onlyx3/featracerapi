@@ -27,8 +27,7 @@ public class FeatRacerAPI {
      * @param projectPath Path to the project e.g., C:\\users\\gto\\repos\\MyApplication
      *                    THis method will create an analysis folder called FeatRacerAnalysis in your user home directory
      */
-    //TODO: Params: analysis Location, Database Location, (Starting Commit?), put options into configuration
-    public void initializeProject(String projectPath) throws IOException, SQLException, ClassNotFoundException, ParseException {
+    public void initializeProject(String projectPath, int startingCommitIndex) throws IOException, SQLException, ClassNotFoundException, ParseException {
         //create analysis folder
         Path analysisFolder = Utilities.createOutputDirectory("FeatRacerAnalysis");
         File analysisDirectory = analysisFolder.toFile();
@@ -93,9 +92,6 @@ public class FeatRacerAPI {
         metricCalculatordb.calculateMetricsSingle(commitHash);
     }
 
-    private void GDTsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
-
-    }
 
     private void EDBsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
 
