@@ -5,9 +5,11 @@ import org.repodriller.Study;
 import org.repodriller.filter.range.Commits;
 import org.repodriller.persistence.csv.CSVFile;
 import org.repodriller.scm.GitRepository;
+import se.gu.data.DataController;
 import se.gu.git.Commit;
 import se.gu.git.DiffExtractor;
 
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -75,6 +77,14 @@ public class ProjectReaderWithDriller implements Study {
             e.printStackTrace();
         }
 //        System.out.println(commitHashes);
+        DataController dataController;
+        try {
+            dataController = new DataController(projectData.getConfiguration());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         try {
             new RepositoryMining()
                     //.setRepoTmpDir(Paths.get(projectData.getConfiguration().getAnalysisDirectory().toURI()))
@@ -91,7 +101,7 @@ public class ProjectReaderWithDriller implements Study {
                     //.process(new CommitSummaryVisitor(projectData),new CSVFile(commitSummaryCSV))
                     //.process(new CommitPolicy(projectData),new CSVFile(modificationsCSV))//==USED FOR COMMIT PRATICES
                     //.process(new MetricCommitVisitor(projectData,commitHashes.size(),commitHashes))
-                    .process(new ProjectDBVisitor(projectData,commitCount,commitHashes),new CSVFile(csvFile))
+                    .process(new ProjectDBVisitor(projectData,commitCount,commitHashes, dataController),new CSVFile(csvFile))
                     .mine();
 
             //update commit indexs
@@ -102,8 +112,12 @@ public class ProjectReaderWithDriller implements Study {
 
         }  catch (Exception e) {
             e.printStackTrace();
+        }finally {
+            try {
+                dataController.closeConnection();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
         }
-
-
     }
 }

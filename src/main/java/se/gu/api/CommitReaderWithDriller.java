@@ -5,6 +5,7 @@ import org.repodriller.Study;
 import org.repodriller.filter.range.Commits;
 import org.repodriller.persistence.csv.CSVFile;
 import org.repodriller.scm.GitRepository;
+import se.gu.data.DataController;
 import se.gu.main.ProjectDBVisitor;
 import se.gu.main.ProjectData;
 
@@ -29,14 +30,28 @@ public class CommitReaderWithDriller implements Study {
         List<String> commitHashes = new ArrayList<>();
         commitHashes.add(commitHash);
 
+        DataController dataController;
+        try {
+            dataController = new DataController(projectData.getConfiguration());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
         try {
             new RepositoryMining()
                     .in(GitRepository.singleProject(projectData.getConfiguration().getProjectRepository().getAbsolutePath()))
                     .through(Commits.single(commitHash))
-                    .process(new ProjectDBVisitor(projectData,1,commitHashes),new CSVFile(csvFile)) // Assumption: ProjectDBVisitor works as it is
+                    .process(new ProjectDBVisitor(projectData,1,commitHashes, dataController),new CSVFile(csvFile))
                     .mine();
         } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException(e);
+        }finally {
+            try {
+                dataController.closeConnection();
+            } catch (SQLException throwables) {
+                throwables.printStackTrace();
+            }
         }
     }
 }

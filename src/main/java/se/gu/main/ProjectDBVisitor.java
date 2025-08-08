@@ -29,11 +29,12 @@ public class ProjectDBVisitor implements CommitVisitor {
     private List<String> commitHashes;
     private int commitIndex;
 
-    public ProjectDBVisitor(ProjectData projectData, int commitCount, List<String> commitHashes) throws SQLException, ClassNotFoundException {
+    public ProjectDBVisitor(ProjectData projectData, int commitCount, List<String> commitHashes, DataController dataController) throws SQLException, ClassNotFoundException {
         this.projectData = projectData;
         projectName = projectData.getConfiguration().getProjectRepository().getName();
         this.commitCount = commitCount;
         this.commitHashes = commitHashes;
+        this.dataController =  dataController;
 
         //dataController = new DataController(projectData.getConfiguration());
     }
@@ -43,7 +44,6 @@ public class ProjectDBVisitor implements CommitVisitor {
     public void process(SCMRepository repository, Commit commit, PersistenceMechanism persistenceMechanism) {
 
         try {
-            dataController = new DataController(projectData.getConfiguration());
 //            int index=0;
 //            for(String c:commitHashes){
 //                index++;
@@ -126,12 +126,6 @@ public class ProjectDBVisitor implements CommitVisitor {
 
         } catch (Exception ex) {
             ex.printStackTrace();
-        }finally {
-            try {
-                dataController.closeConnection();
-            } catch (SQLException throwables) {
-                throwables.printStackTrace();
-            }
         }
     }
 
