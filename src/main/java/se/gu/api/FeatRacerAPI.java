@@ -27,25 +27,32 @@ public class FeatRacerAPI {
      * @param projectPath Path to the project e.g., C:\\users\\gto\\repos\\MyApplication
      *                    THis method will create an analysis folder called FeatRacerAnalysis in your user home directory
      */
-    public void initializeProject(String projectPath, int startingCommitIndex) throws IOException, SQLException, ClassNotFoundException, ParseException {
-        //create analysis folder
-        Path analysisFolder = Utilities.createOutputDirectory("FeatRacerAnalysis");
-        File analysisDirectory = analysisFolder.toFile();
+    public void initializeProject(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions) throws Exception {
         //Read properties file
         Properties properties = new Properties();
         InputStream inputStream = new FileInputStream("config.properties");
         properties.load(inputStream);
+        // Set properties values
+        properties.setProperty("ProjectRepository", projectPath);
+        properties.setProperty("AnalysisDirectory",  analysisPath);
+        properties.setProperty("AllowedFileExtensions", allowedFileExtensions);
+        properties.setProperty("StartingCommitIndex", String.valueOf(startingCommitIndex));
+
+        //create analysis folder
+        Path analysisFolder = Utilities.createOutputDirectory(properties.getProperty("AnalysisDirectory"));
+        File analysisDirectory = analysisFolder.toFile();
 
         //set configuration
         Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
 
+
         //instantiate project data
         ProjectData projectData = new ProjectData(configuration);
 
-        //now generate assets at the current state of the project
-        ProjectReader projectReader = new ProjectReader(projectData);
-        projectReader.createAnnotationsWithoutCommits();
         // TODO: This is option AWC but during testing we used option D, change to D -> GM -> GDT
+        D(projectData);
+        GM(projectData);
+        GDT(projectData);
     }
 
 

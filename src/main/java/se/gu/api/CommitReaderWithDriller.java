@@ -11,7 +11,9 @@ import se.gu.main.ProjectData;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CommitReaderWithDriller implements Study {
 
@@ -25,6 +27,7 @@ public class CommitReaderWithDriller implements Study {
 
     @Override
     public void execute() {
+        Arrays.asList(projectData.getConfiguration().getAllowedFileExtensions().split(",")).parallelStream().map(e -> e.replace(".", "")).collect(Collectors.toList());
         String csvFile = String.format("%s/%s_projectDataCounts.csv", projectData.getConfiguration().getAnalysisDirectory(), projectData.getConfiguration().getProjectRepository().getName());
 
         List<String> commitHashes = new ArrayList<>();
