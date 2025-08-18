@@ -11,10 +11,7 @@ import se.gu.ml.experiment.ExperimentRunnerDB;
 import se.gu.ml.preprocessing.DataGeneratorDB;
 import se.gu.utils.Utilities;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.nio.file.Path;
 import java.sql.SQLException;
 import java.util.Properties;
@@ -45,23 +42,46 @@ public class FeatRacerAPI {
         //set configuration
         Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
 
-
         //instantiate project data
         ProjectData projectData = new ProjectData(configuration);
 
-        // TODO: This is option AWC but during testing we used option D, change to D -> GM -> GDT
         D(projectData);
         GM(projectData);
         GDT(projectData);
     }
 
 
-    public void invokeFeatRacer(String commitHash) {
+    public void invokeFeatRacer(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions, String commitHash) throws IOException, SQLException, ClassNotFoundException {
+        //Read properties file
+        Properties properties = new Properties();
+        InputStream inputStream = new FileInputStream("config.properties");
+        properties.load(inputStream);
+        // Set properties values
+        properties.setProperty("ProjectRepository", projectPath);
+        properties.setProperty("AnalysisDirectory",  analysisPath);
+        properties.setProperty("AllowedFileExtensions", allowedFileExtensions);
+        properties.setProperty("StartingCommitIndex", String.valueOf(startingCommitIndex));
+
+        //create analysis folder
+        Path analysisFolder = Utilities.createOutputDirectory(properties.getProperty("AnalysisDirectory"));
+        File analysisDirectory = analysisFolder.toFile();
+
+        //set configuration
+        Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
+
+        //instantiate project data
+        ProjectData projectData = new ProjectData(configuration);
+
+        Dsingle(projectData, commitHash);
+        GMsingle(projectData, commitHash);
+        EDB(projectData);
+
         //TODO: What is the output format /// Which of the options is this?
     }
 
     public void updateDataset() {
         //TODO: Whats the input parameter(s), Whats the option?
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
     // Generate Data
