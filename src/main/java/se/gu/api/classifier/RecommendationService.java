@@ -1,6 +1,5 @@
 package se.gu.api.classifier;
 
-import mulan.classifier.MultiLabelLearnerBase;
 import mulan.classifier.MultiLabelOutput;
 import mulan.classifier.meta.RAkELd;
 import mulan.classifier.transformation.LabelPowerset;
@@ -10,6 +9,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
 import se.gu.assets.DataSetRecord;
 import se.gu.data.DataController;
+import se.gu.git.Commit;
 import se.gu.main.Configuration;
 import se.gu.main.ProjectData;
 import se.gu.ml.experiment.ClassifierRecord;
@@ -21,10 +21,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class RecommendationService {
@@ -48,14 +45,25 @@ public class RecommendationService {
         String[] assetTypes = config.getAssetTypes();
         List<String> assetTypesToPredict = config.getAssetTypesToPredict();
 
+
+        List<Commit> fullCommitList = dataController.getAllCommits(projectName);
+        Commit relevantCommit = fullCommitList.get(fullCommitList.size()-1);
+
         for(String assetType : assetTypes){
             if(!assetTypesToPredict.contains(assetType)) continue;
 
+
+
             //get datasetrecord for specific type of type (folder,file, loc)
-            List<DataSetRecord> typeDataSetRecords = dataSetRecords.parallelStream().filter(d -> d.getAssetType().equalsIgnoreCase(assetType)).collect(Collectors.toList());
+            Optional<DataSetRecord> recordOptional = dataSetRecords.parallelStream()
+                    .filter(d -> d.getAssetType().equalsIgnoreCase(assetType) &&
+                            d.getCommitHash().equals(relevantCommit.getCommitHash()))
+                    .findFirst();
+            if(recordOptional.isEmpty()) continue;
+            DataSetRecord dataSetRecord = recordOptional.get();
 
             //go through each record and run predictions
-            for(DataSetRecord dataSetRecord : typeDataSetRecords){
+            //for(DataSetRecord dataSetRecord : typeDataSetRecords){
                 if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
 
                 MultiLabelInstances trainingDataSet = null;
@@ -88,10 +96,9 @@ public class RecommendationService {
                     List<String> predictedFeatures = getRetrievedFeatures(List.of(trainingDataSet.getLabelNames()), output.getBipartition());
 
                     if(!predictedFeatures.isEmpty()) allRecommendations.put(instanceName, predictedFeatures);
-
                 }
 
-            }
+            //}
         }
         return allRecommendations;
     }

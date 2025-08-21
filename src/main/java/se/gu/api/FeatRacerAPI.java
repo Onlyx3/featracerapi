@@ -2,6 +2,7 @@ package se.gu.api;
 
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.repodriller.RepoDriller;
+import se.gu.api.classifier.RecommendationService;
 import se.gu.main.Configuration;
 import se.gu.main.ProjectData;
 import se.gu.main.ProjectReader;
@@ -14,17 +15,22 @@ import se.gu.utils.Utilities;
 import java.io.*;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public class FeatRacerAPI {
 
     /**
-     * You need to give featracer the path to your project
      *
-     * @param projectPath Path to the project e.g., C:\\users\\gto\\repos\\MyApplication
-     *                    THis method will create an analysis folder called FeatRacerAnalysis in your user home directory
+     * @param projectPath The path to the project that will be analyzed
+     * @param startingCommitIndex The commit to start analyzing from
+     * @param analysisPath Path for creation of temporary copy
+     * @param allowedFileExtensions Fileextensions to be considered. Format: .java,.cpp,.js
+     * @return A list of recommendations, if any
+     * @throws Exception
      */
-    public void initializeProject(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions) throws Exception {
+    public Map<String, List<String>> initializeProject(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions) throws Exception {
         //Read properties file
         Properties properties = new Properties();
         InputStream inputStream = new FileInputStream("config.properties");
@@ -48,10 +54,11 @@ public class FeatRacerAPI {
         D(projectData);
         GM(projectData);
         GDT(projectData);
+        return EDB(projectData);
     }
 
 
-    public void invokeFeatRacer(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions, String commitHash) throws IOException, SQLException, ClassNotFoundException {
+    public Map<String, List<String>> invokeFeatRacer(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions, String commitHash) throws Exception {
         //Read properties file
         Properties properties = new Properties();
         InputStream inputStream = new FileInputStream("config.properties");
@@ -74,9 +81,8 @@ public class FeatRacerAPI {
 
         Dsingle(projectData, commitHash);
         GMsingle(projectData, commitHash);
-        EDB(projectData);
-
-        //TODO: What is the output format /// Which of the options is this?
+        GDT(projectData);
+        return EDB(projectData);
     }
 
     public void updateDataset() {
@@ -103,9 +109,9 @@ public class FeatRacerAPI {
     }
 
     // Run classifiers on those ARFF datasets
-    private void EDB(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
-        ExperimentRunnerDB experimentRunnerDB = new ExperimentRunnerDB(projectData);
-        experimentRunnerDB.runExperiment();
+    private Map<String, List<String>> EDB(ProjectData projectData) throws Exception {
+        RecommendationService recommendationService = new RecommendationService(projectData);
+        return recommendationService.runClassifier();
     }
 
     // This theoretically should work with single commits now
@@ -119,8 +125,4 @@ public class FeatRacerAPI {
         metricCalculatordb.calculateMetricsSingle(commitHash);
     }
 
-
-    private void EDBsingle(ProjectData projectData) throws SQLException, IOException, ClassNotFoundException {
-
-    }
 }
