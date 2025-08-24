@@ -15,6 +15,7 @@ import se.gu.utils.Utilities;
 import java.io.*;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -47,6 +48,12 @@ public class FeatRacerAPI {
 
         //set configuration
         Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
+
+        File[] clones = configuration.getClonedRepositories();
+        configuration.setCopiedGitRepositories(Arrays.asList(clones));
+        configuration.setProjectShortNameMap(properties.getProperty("ProjectShortNames"));
+        File repo = configuration.getCopiedGitRepositories().get(0);
+        configuration.setProjectRepository(repo);
 
         //instantiate project data
         ProjectData projectData = new ProjectData(configuration);

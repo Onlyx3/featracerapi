@@ -20,7 +20,6 @@ import weka.core.Instances;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -64,7 +63,7 @@ public class RecommendationService {
 
             //go through each record and run predictions
             //for(DataSetRecord dataSetRecord : typeDataSetRecords){
-                if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
+                //if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
 
                 MultiLabelInstances trainingDataSet = null;
                 try{
