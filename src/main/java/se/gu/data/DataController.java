@@ -20,12 +20,13 @@ public class DataController {
 
 
     private Connection connection;
-    private static final String connectionURL = "jdbc:sqlite:featracer.db";
+    private String connectionURL;
 
     public DataController(Configuration configuration) throws SQLException, ClassNotFoundException {
        /* Class.forName("com.mysql.cj.jdbc.Driver");
         connectionURL = configuration.getDataBaseConnectionString().split(",");
         connection = getConnection(); */
+        connectionURL = "jdbc:sqlite:" + System.getProperty("user.home") + "/featracer.db";
         connection = DriverManager.getConnection(connectionURL);
         if(connection != null && isDatabaseNew()) initSQLite();
 

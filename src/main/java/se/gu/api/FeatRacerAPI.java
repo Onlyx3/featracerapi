@@ -34,7 +34,8 @@ public class FeatRacerAPI {
     public Map<String, List<String>> initializeProject(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions) throws Exception {
         //Read properties file
         Properties properties = new Properties();
-        InputStream inputStream = new FileInputStream("config.properties");
+        InputStream inputStream = FeatRacerAPI.class.getResourceAsStream("/config.properties");
+        if (inputStream == null) throw new FileNotFoundException("property file 'config.properties' not found in resources");
         properties.load(inputStream);
         // Set properties values
         properties.setProperty("ProjectRepository", projectPath);
@@ -65,16 +66,17 @@ public class FeatRacerAPI {
     }
 
 
-    public Map<String, List<String>> invokeFeatRacer(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions, String commitHash) throws Exception {
+    public Map<String, List<String>> invokeFeatRacer(String projectPath, String analysisPath, String allowedFileExtensions, String commitHash) throws Exception {
         //Read properties file
         Properties properties = new Properties();
-        InputStream inputStream = new FileInputStream("config.properties");
+        InputStream inputStream = FeatRacerAPI.class.getResourceAsStream("/config.properties");
+        if (inputStream == null) throw new FileNotFoundException("property file 'config.properties' not found in resources");
         properties.load(inputStream);
         // Set properties values
         properties.setProperty("ProjectRepository", projectPath);
         properties.setProperty("AnalysisDirectory",  analysisPath);
         properties.setProperty("AllowedFileExtensions", allowedFileExtensions);
-        properties.setProperty("StartingCommitIndex", String.valueOf(startingCommitIndex));
+       // properties.setProperty("StartingCommitIndex", String.valueOf(startingCommitIndex));
 
         //create analysis folder
         Path analysisFolder = Utilities.createOutputDirectory(properties.getProperty("AnalysisDirectory"));
@@ -82,6 +84,12 @@ public class FeatRacerAPI {
 
         //set configuration
         Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
+
+        File[] clones = configuration.getClonedRepositories();
+        configuration.setCopiedGitRepositories(Arrays.asList(clones));
+        configuration.setProjectShortNameMap(properties.getProperty("ProjectShortNames"));
+        File repo = configuration.getCopiedGitRepositories().get(0);
+        configuration.setProjectRepository(repo);
 
         //instantiate project data
         ProjectData projectData = new ProjectData(configuration);
