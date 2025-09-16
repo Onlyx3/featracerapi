@@ -25,7 +25,11 @@ sourceSets {
 
 dependencies {
     // weka
-    implementation("nz.ac.waikato.cms.weka:weka-stable:3.8.6")
+    implementation("nz.ac.waikato.cms.weka:weka-stable:3.8.6") {
+        exclude group: 'jakarta.xml.bind', module: 'jakarta.xml.bind-api'
+    }
+
+
     // https://mvnrepository.com/artifact/commons-io/commons-io
     implementation("commons-io:commons-io:2.6")
     // https://mvnrepository.com/artifact/org.apache.commons/commons-lang3
@@ -62,7 +66,12 @@ dependencies {
     implementation("org.apache.lucene:lucene-queryparser:8.7.0")
 
     // https://mvnrepository.com/artifact/org.repodriller/repodriller Note: THIS HAS A TON OF VULNERABILITIES
-    implementation("org.repodriller:repodriller:2.0.1")
+    implementation("org.repodriller:repodriller:2.0.1") {
+        exclude group: 'org.slf4j', module: 'slf4j-api'
+        exclude group: 'org.slf4j', module: 'slf4j-jdk14'
+    }
+    implementation 'org.slf4j:slf4j-api:1.7.32'
+    implementation 'org.slf4j:slf4j-simple:1.7.32'
 
     // https://mvnrepository.com/artifact/uk.ac.shef.wit/simmetrics
     //implementation("uk.ac.shef.wit:simmetrics:1.6.2")
@@ -71,7 +80,9 @@ dependencies {
     implementation("me.tongfei:progressbar:0.10.1")
 
     // https://mvnrepository.com/artifact/net.sf.meka/meka
-    implementation("net.sf.meka:meka:1.9.2")
+    implementation("net.sf.meka:meka:1.9.2") {
+        exclude group: 'jakarta.xml.bind', module: 'jakarta.xml.bind-api'
+    }
 
 
 

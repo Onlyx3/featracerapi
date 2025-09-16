@@ -23,10 +23,14 @@ public class DataController {
     private String connectionURL;
 
     public DataController(Configuration configuration) throws SQLException, ClassNotFoundException {
+        Class.forName("org.sqlite.JDBC");
+       // Class.forName("com.mysql.cj.jdbc.Driver");
        /* Class.forName("com.mysql.cj.jdbc.Driver");
         connectionURL = configuration.getDataBaseConnectionString().split(",");
         connection = getConnection(); */
-        connectionURL = "jdbc:sqlite:" + System.getProperty("user.home") + "/featracer.db";
+
+        //connectionURL = "jdbc:sqlite:" + System.getProperty("user.home") + "/featracer.db";
+        connectionURL = "jdbc:sqlite:" + configuration.getAnalysisDirectory() + "/featracer.db";
         connection = DriverManager.getConnection(connectionURL);
         if(connection != null && isDatabaseNew()) initSQLite();
 
@@ -103,6 +107,10 @@ public class DataController {
     }
 
     public boolean assertMappingInsert(String assetFullName, String assetType, String parent, String feature, String project, String annotationType, String commitHash, int commitIndex, String developer) throws SQLException {
+
+        //temp hans fix
+        if(feature.contains("%s") || feature.contains("+ content +")) return false;
+
         // Check if already in db
         String query = "SELECT 1 FROM assetmapping WHERE assetfullname = ? AND featurename = ? AND annotationType = ? AND project = ?";
 

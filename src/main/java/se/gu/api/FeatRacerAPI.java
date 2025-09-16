@@ -81,6 +81,7 @@ public class FeatRacerAPI {
         //create analysis folder
         Path analysisFolder = Utilities.createOutputDirectory(properties.getProperty("AnalysisDirectory"));
         File analysisDirectory = analysisFolder.toFile();
+        System.out.println("Analysis Directory is: " + analysisDirectory.getAbsolutePath());
 
         //set configuration
         Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);

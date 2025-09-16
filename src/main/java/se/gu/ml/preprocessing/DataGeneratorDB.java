@@ -252,9 +252,9 @@ public class DataGeneratorDB {
         stringBuilder.append(System.lineSeparator());
 
         for (String featureName : mappedFeatureNames) {
-            stringBuilder.append(String.format("<label name=\"%s\"> </label>", featureName));
-            stringBuilder.append(System.lineSeparator());
-
+           // stringBuilder.append(String.format("<label name=\"%s\"> </label>", featureName));
+           // stringBuilder.append(System.lineSeparator());
+            stringBuilder.append(String.format("  <label name=\"%s\" />\n", featureName));
         }
         stringBuilder.append("</labels>");
 

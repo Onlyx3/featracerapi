@@ -129,12 +129,12 @@ public class Utilities  implements Serializable {
         return dotFilesDirectory;
     }
 
-    public static Path createOutputDirectory(String folderName) throws IOException {
+    public static Path createOutputDirectory(String fullPath) throws IOException {
         // Get the user's home directory in a platform-independent way
-        String userHome = System.getProperty("user.home");
+        //String userHome = System.getProperty("user.home");
 
         // Define the output directory path
-        Path outputPath = Paths.get(userHome, folderName);
+        Path outputPath = Paths.get(fullPath);
 
         // Create the directory if it doesn't exist
         if (!Files.exists(outputPath)) {
