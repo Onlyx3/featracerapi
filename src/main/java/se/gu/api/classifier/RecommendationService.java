@@ -51,63 +51,65 @@ public class RecommendationService {
             return new HashMap<>();
         }
 
-        for(int i = fullCommitList.size() - 1; i >= 0; i--){
-            Commit relevantCommit = fullCommitList.get(i);
 
-            for(String assetType : assetTypes){
-                if(!assetTypesToPredict.contains(assetType)) continue;
+        int i = fullCommitList.size() - 1;
+        Commit relevantCommit = fullCommitList.get(i);
 
+        for(String assetType : assetTypes){
+            if(!assetTypesToPredict.contains(assetType)) continue;
 
+            //get datasetrecord for specific type of type (folder,file, loc)
+            Optional<DataSetRecord> recordOptional = dataSetRecords.parallelStream()
+                    .filter(d -> d.getAssetType().equalsIgnoreCase(assetType) &&
+                            d.getCommitHash().equals(relevantCommit.getCommitHash()))
+                    .findFirst();
+            if(recordOptional.isEmpty()) continue;
+            DataSetRecord dataSetRecord = recordOptional.get();
 
-                //get datasetrecord for specific type of type (folder,file, loc)
-                Optional<DataSetRecord> recordOptional = dataSetRecords.parallelStream()
-                        .filter(d -> d.getAssetType().equalsIgnoreCase(assetType) &&
-                                d.getCommitHash().equals(relevantCommit.getCommitHash()))
-                        .findFirst();
-                if(recordOptional.isEmpty()) continue;
-                DataSetRecord dataSetRecord = recordOptional.get();
+            if (StringUtils.isBlank(dataSetRecord.getTestFile())) {
+                continue;
+            }
+            //go through each record and run predictions
+            //for(DataSetRecord dataSetRecord : typeDataSetRecords){
+                //if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
 
-                //go through each record and run predictions
-                //for(DataSetRecord dataSetRecord : typeDataSetRecords){
-                    //if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
+                MultiLabelInstances trainingDataSet = null;
+                try{
+                    trainingDataSet = new MultiLabelInstances(dataSetRecord.getTrainingFile(), dataSetRecord.getTrainingXMLFile());
+                } catch (InvalidDataFormatException e) {
+                    e.printStackTrace();
+                    continue;
+                }
 
-                    MultiLabelInstances trainingDataSet = null;
-                    try{
-                        trainingDataSet = new MultiLabelInstances(dataSetRecord.getTrainingFile(), dataSetRecord.getTrainingXMLFile());
-                    } catch (InvalidDataFormatException e) {
-                        e.printStackTrace();
-                        continue;
-                    }
+                Instances unlabeledData = getUnlabeledData(dataSetRecord.getTestFile());
+                int numInstances = unlabeledData.numInstances();
+                File assetMappingsFile = new File(dataSetRecord.getTestCSVFile());
+                if(!assetMappingsFile.exists()) continue;
 
-                    Instances unlabeledData = getUnlabeledData(dataSetRecord.getTestFile());
-                    int numInstances = unlabeledData.numInstances();
-                    File assetMappingsFile = new File(dataSetRecord.getTestCSVFile());
-                    if(!assetMappingsFile.exists()) continue;
+                List<String> assetMappings = FileUtils.readLines(assetMappingsFile, config.getTextEncoding());
+                List<String> instanceNames = assetMappings.parallelStream().map(m -> m.split(";")[0]).collect(Collectors.toList());
 
-                    List<String> assetMappings = FileUtils.readLines(assetMappingsFile, config.getTextEncoding());
-                    List<String> instanceNames = assetMappings.parallelStream().map(m -> m.split(";")[0]).collect(Collectors.toList());
+                RAkELd learner = new  RAkELd(new LabelPowerset(new J48()));
 
-                    RAkELd learner = new  RAkELd(new LabelPowerset(new J48()));
+                ClassifierRecord classifierRecord = new ClassifierRecord();
+                classifierRecord.setClassifierName("RAkELd");
+                classifierRecord.setTrainingSet(trainingDataSet);
 
-                    ClassifierRecord classifierRecord = new ClassifierRecord();
-                    classifierRecord.setClassifierName("RAkELd");
-                    classifierRecord.setTrainingSet(trainingDataSet);
+                learner.build(classifierRecord.getTrainingSet());
+                for(int j = 0; j < numInstances; j++) {
+                    Instance instance = unlabeledData.instance(j);
+                    String instanceName = instanceNames.get(j);
+                    MultiLabelOutput output = learner.makePrediction(instance);
+                    List<String> predictedFeatures = getRetrievedFeatures(List.of(trainingDataSet.getLabelNames()), output.getBipartition());
 
-                    learner.build(classifierRecord.getTrainingSet());
-                    for(int j = 0; j < numInstances; j++) {
-                        Instance instance = unlabeledData.instance(i);
-                        String instanceName = instanceNames.get(i);
-                        MultiLabelOutput output = learner.makePrediction(instance);
-                        List<String> predictedFeatures = getRetrievedFeatures(List.of(trainingDataSet.getLabelNames()), output.getBipartition());
-
-                        if(!predictedFeatures.isEmpty()) allRecommendations.put(instanceName, predictedFeatures);
-                    }
+                    if(!predictedFeatures.isEmpty()) allRecommendations.put(instanceName, predictedFeatures);
+                }
 
             }
-            if(allRecommendations.isEmpty()){ continue;}
+            if(allRecommendations.isEmpty()){
+                return new HashMap<>();
+            }
             return allRecommendations;
-        }
-        return new HashMap<>();
     }
 
     private List<String> getRetrievedFeatures(List<String> features, boolean[] bipartition) {

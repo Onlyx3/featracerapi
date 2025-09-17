@@ -29,6 +29,7 @@ public class DataController {
         connectionURL = configuration.getDataBaseConnectionString().split(",");
         connection = getConnection(); */
 
+
         //connectionURL = "jdbc:sqlite:" + System.getProperty("user.home") + "/featracer.db";
         connectionURL = "jdbc:sqlite:" + configuration.getAnalysisDirectory() + "/featracer.db";
         connection = DriverManager.getConnection(connectionURL);
