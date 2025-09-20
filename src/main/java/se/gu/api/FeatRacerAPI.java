@@ -128,6 +128,7 @@ public class FeatRacerAPI {
     private Map<String, List<String>> EDB(ProjectData projectData) throws Exception {
         RecommendationService recommendationService = new RecommendationService(projectData);
         return recommendationService.runClassifier();
+    //    return recommendationService.runClassifierAll();
     }
 
     // This theoretically should work with single commits now

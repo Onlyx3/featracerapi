@@ -29,12 +29,15 @@ public class MetricCalculatorDB {
         int startingCommitIndex = projectData.getConfiguration().getStartingCommitIndex();
         int commitsToRun = projectData.getConfiguration().getCommitsToExecute();
 
-        //get latest commit from database
-        List<Commit> fullCommitList = dataController.getAllCommits(projectName);
-        Commit relevantCommit = fullCommitList.get(fullCommitList.size()-1);
 
-        // Check if latest commit in database matches with the to be handled commit hash
-        if(!relevantCommit.getCommitHash().equals(recentCommitHash)) throw new IllegalStateException("MetricCalculatorDB: commitHash mismatch in database"); // TODO handle differently
+
+        //get latest commit from database
+        List<Commit> fullCommitList = dataController.getCommitForHash(projectName, recentCommitHash);
+        if(fullCommitList.isEmpty()){ return;} //if its empty we return here bc there are no metrics to calculate
+        if(fullCommitList.size() != 1) throw new SQLException("There should be only one commit to run");
+        Commit relevantCommit = fullCommitList.get(0);
+
+
 
         List<Commit> commits = new ArrayList<>();
         commits.add(relevantCommit);

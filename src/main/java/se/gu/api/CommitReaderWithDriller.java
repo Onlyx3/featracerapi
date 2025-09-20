@@ -1,5 +1,9 @@
 package se.gu.api;
 
+import org.eclipse.jgit.api.Git;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevWalk;
 import org.repodriller.RepositoryMining;
 import org.repodriller.Study;
 import org.repodriller.filter.range.Commits;
@@ -9,6 +13,7 @@ import se.gu.data.DataController;
 import se.gu.main.ProjectDBVisitor;
 import se.gu.main.ProjectData;
 
+import java.io.File;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -41,11 +46,17 @@ public class CommitReaderWithDriller implements Study {
         } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+
+        String repoPath = projectData.getConfiguration().getProjectRepository().getAbsolutePath();
+        int commitIndex = getCommitIndex(repoPath, commitHash);
+
+        System.out.println("DEBUG: Attempting to find commit hash: " + commitHash);
+        System.out.println("DEBUG: Inside repository path: " + repoPath);
         try {
             new RepositoryMining()
                     .in(GitRepository.singleProject(projectData.getConfiguration().getProjectRepository().getAbsolutePath()))
                     .through(Commits.single(commitHash))
-                    .process(new ProjectDBVisitor(projectData,1,commitHashes, dataController),new CSVFile(csvFile))
+                    .process(new ProjectDBVisitorSingle(projectData,commitIndex,commitHashes, dataController),new CSVFile(csvFile))
                     .mine();
         } catch (SQLException | ClassNotFoundException e) {
             throw new RuntimeException(e);
@@ -56,5 +67,24 @@ public class CommitReaderWithDriller implements Study {
                 throwables.printStackTrace();
             }
         }
+    }
+
+    private int getCommitIndex(String repoPath, String commitHash) {
+        int c = 0;
+        try(Git git = Git.open(new File(repoPath))) {
+            ObjectId commitId = git.getRepository().resolve(commitHash);
+            if(commitId == null) {
+                throw new IllegalArgumentException("Invalid commit hash: " + commitHash);
+            }
+            RevWalk revWalk = new RevWalk(git.getRepository());
+            RevCommit revCommit = revWalk.parseCommit(commitId);
+            revWalk.markStart(revCommit);
+            for(RevCommit rev : revWalk) c++;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to get commit index from Git", e);
+        }
+        System.out.println("DEBUG: CommitIndex: " + c);
+        return c;
     }
 }

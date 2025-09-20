@@ -461,6 +461,20 @@ public class DataController {
         return res1 >0 || res2 > 0;
     }
 
+    public List<Commit> getCommitForHash(String project, String commitHash) throws SQLException {
+        String sql = "SELECT DISTINCT commitIndex, commitHash FROM assets WHERE project = ? AND commitHash = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1, project);
+        statement.setString(2, commitHash);
+
+        ResultSet resultSet = statement.executeQuery();
+        List<Commit> commits = new ArrayList<>();
+        while (resultSet.next()) {
+            commits.add(new Commit(resultSet.getInt("commitIndex"), resultSet.getString("commitHash")));
+        }
+        return commits;
+    }
+
     public List<Commit> getAllCommits(String project) throws SQLException {
 
         String sql = "SELECT DISTINCT commitIndex, commitHash FROM assets WHERE project = ? ORDER BY commitIndex";

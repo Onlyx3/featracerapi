@@ -51,7 +51,6 @@ public class RecommendationService {
             return new HashMap<>();
         }
 
-
         int i = fullCommitList.size() - 1;
         Commit relevantCommit = fullCommitList.get(i);
 
@@ -67,6 +66,7 @@ public class RecommendationService {
             DataSetRecord dataSetRecord = recordOptional.get();
 
             if (StringUtils.isBlank(dataSetRecord.getTestFile())) {
+                System.out.println("No test file found for predictions!");
                 continue;
             }
             //go through each record and run predictions
@@ -96,6 +96,7 @@ public class RecommendationService {
                 classifierRecord.setTrainingSet(trainingDataSet);
 
                 learner.build(classifierRecord.getTrainingSet());
+                System.out.println("Making Predictions now...");
                 for(int j = 0; j < numInstances; j++) {
                     Instance instance = unlabeledData.instance(j);
                     String instanceName = instanceNames.get(j);
@@ -109,6 +110,10 @@ public class RecommendationService {
             if(allRecommendations.isEmpty()){
                 return new HashMap<>();
             }
+
+        for (Map.Entry<String, List<String>> entry : allRecommendations.entrySet()) {
+            System.out.println(entry.getKey() + " :::: "  + entry.getValue().toString());
+        }
             return allRecommendations;
     }
 
@@ -131,4 +136,91 @@ public class RecommendationService {
         }
         return unlabeledData;
     }
+
+    public Map<String, List<String>> runClassifierAll() throws Exception {
+        Map<String, List<String>> allRecommendations = new HashMap<>();
+
+        File analysisDirectory = projectData.getConfiguration().getAnalysisDirectory();
+        Configuration config = projectData.getConfiguration();
+        DataController dataController = new DataController(config);
+        String projectName = config.getProjectRepository().getName();
+
+        List<DataSetRecord> dataSetRecords = dataController.getAllDataSetsForProject(projectName);
+     //   String[] assetTypes = config.getAssetTypes();
+        String[] assetTypes = {"FRAGMENT"};
+        List<String> assetTypesToPredict = config.getAssetTypesToPredict();
+
+
+        List<Commit> fullCommitList = dataController.getAllCommits(projectName);
+        if(fullCommitList.isEmpty()){
+            System.err.println("No commits found for project");
+            return new HashMap<>();
+        }
+
+        //int i = fullCommitList.size() - 1;
+        //Commit relevantCommit = fullCommitList.get(i);
+        for(Commit commit : fullCommitList) {
+
+            for (String assetType : assetTypes) {
+                if (!assetTypesToPredict.contains(assetType)) continue;
+
+                //get datasetrecord for specific type of type (folder,file, loc)
+                Optional<DataSetRecord> recordOptional = dataSetRecords.parallelStream()
+                        .filter(d -> d.getAssetType().equalsIgnoreCase(assetType) &&
+                                d.getCommitHash().equals(commit.getCommitHash()))
+                        .findFirst();
+                if (recordOptional.isEmpty()) continue;
+                DataSetRecord dataSetRecord = recordOptional.get();
+
+                if (StringUtils.isBlank(dataSetRecord.getTestFile())) {
+                    System.out.println("No test file found for predictions!");
+                    continue;
+                }
+                //go through each record and run predictions
+                //for(DataSetRecord dataSetRecord : typeDataSetRecords){
+                //if(StringUtils.isBlank(dataSetRecord.getTestFile())) continue;
+
+                MultiLabelInstances trainingDataSet = null;
+                try {
+                    trainingDataSet = new MultiLabelInstances(dataSetRecord.getTrainingFile(), dataSetRecord.getTrainingXMLFile());
+                } catch (InvalidDataFormatException e) {
+                    e.printStackTrace();
+                    continue;
+                }
+
+                Instances unlabeledData = getUnlabeledData(dataSetRecord.getTestFile());
+                int numInstances = unlabeledData.numInstances();
+                File assetMappingsFile = new File(dataSetRecord.getTestCSVFile());
+                if (!assetMappingsFile.exists()) continue;
+
+                List<String> assetMappings = FileUtils.readLines(assetMappingsFile, config.getTextEncoding());
+                List<String> instanceNames = assetMappings.parallelStream().map(m -> m.split(";")[0]).collect(Collectors.toList());
+
+                RAkELd learner = new RAkELd(new LabelPowerset(new J48()));
+
+                ClassifierRecord classifierRecord = new ClassifierRecord();
+                classifierRecord.setClassifierName("RAkELd");
+                classifierRecord.setTrainingSet(trainingDataSet);
+
+                learner.build(classifierRecord.getTrainingSet());
+                for (int j = 0; j < numInstances; j++) {
+                    Instance instance = unlabeledData.instance(j);
+                    String instanceName = instanceNames.get(j);
+                    MultiLabelOutput output = learner.makePrediction(instance);
+                    List<String> predictedFeatures = getRetrievedFeatures(List.of(trainingDataSet.getLabelNames()), output.getBipartition());
+
+                    if (!predictedFeatures.isEmpty()) {
+                        allRecommendations.put(instanceName, predictedFeatures);
+                        System.out.println(instanceName + " :::: " + predictedFeatures.toString() + "----id" + commit.getCommitIndex());
+                    }
+                }
+
+            }
+        }
+        if (allRecommendations.isEmpty()) {
+            return new HashMap<>();
+        }
+        return allRecommendations;
+    }
+
 }
