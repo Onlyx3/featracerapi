@@ -14,6 +14,7 @@ import se.gu.main.ProjectDBVisitor;
 import se.gu.main.ProjectData;
 
 import java.io.File;
+import java.nio.file.Paths;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -54,6 +55,7 @@ public class CommitReaderWithDriller implements Study {
         System.out.println("DEBUG: Inside repository path: " + repoPath);
         try {
             new RepositoryMining()
+                    .setRepoTmpDir(Paths.get(projectData.getConfiguration().getAnalysisDirectory().toURI()))
                     .in(GitRepository.singleProject(projectData.getConfiguration().getProjectRepository().getAbsolutePath()))
                     .through(Commits.single(commitHash))
                     .process(new ProjectDBVisitorSingle(projectData,commitIndex,commitHashes, dataController),new CSVFile(csvFile))
