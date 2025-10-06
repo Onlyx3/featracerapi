@@ -101,10 +101,54 @@ public class FeatRacerAPI {
         return EDB(projectData);
     }
 
+    /**
+     * This function is used for testing only.
+     * @param projectPath
+     * @param startingCommitIndex
+     * @param analysisPath
+     * @param allowedFileExtensions
+     * @return All recommendations from commmit index startingCommitIndex to the most recent.
+     * @throws Exception
+     */
+    public Map<String, List<String>> testRecommendationAll(String projectPath, int startingCommitIndex, String analysisPath, String allowedFileExtensions) throws Exception {
+        //Read properties file
+        Properties properties = new Properties();
+        InputStream inputStream = FeatRacerAPI.class.getResourceAsStream("/config.properties");
+        if (inputStream == null) throw new FileNotFoundException("property file 'config.properties' not found in resources");
+        properties.load(inputStream);
+        // Set properties values
+        properties.setProperty("ProjectRepository", projectPath);
+        properties.setProperty("AnalysisDirectory",  analysisPath);
+        properties.setProperty("AllowedFileExtensions", allowedFileExtensions);
+        properties.setProperty("StartingCommitIndex", String.valueOf(startingCommitIndex));
+
+        //create analysis folder
+        Path analysisFolder = Utilities.createOutputDirectory(properties.getProperty("AnalysisDirectory"));
+        File analysisDirectory = analysisFolder.toFile();
+
+        //set configuration
+        Configuration configuration = Utilities.getConfiguration(properties, analysisDirectory);
+
+        File[] clones = configuration.getClonedRepositories();
+        configuration.setCopiedGitRepositories(Arrays.asList(clones));
+        configuration.setProjectShortNameMap(properties.getProperty("ProjectShortNames"));
+        File repo = configuration.getCopiedGitRepositories().get(0);
+        configuration.setProjectRepository(repo);
+
+        //instantiate project data
+        ProjectData projectData = new ProjectData(configuration);
+
+    //    D(projectData);
+  //      GM(projectData);
+  //      GDT(projectData);
+        return EDBAll(projectData);
+    }
+
     public void updateDataset() {
         //TODO: Whats the input parameter(s), Whats the option?
         throw new UnsupportedOperationException("Not supported yet.");
     }
+
 
     // Generate Data
     private void D(ProjectData projectData) {
@@ -128,7 +172,12 @@ public class FeatRacerAPI {
     private Map<String, List<String>> EDB(ProjectData projectData) throws Exception {
         RecommendationService recommendationService = new RecommendationService(projectData);
         return recommendationService.runClassifier();
-    //    return recommendationService.runClassifierAll();
+    }
+
+    // Testing only
+    private Map<String, List<String>> EDBAll(ProjectData projectData) throws Exception {
+        RecommendationService recommendationService = new RecommendationService(projectData);
+        return recommendationService.runClassifierAll();
     }
 
     // This theoretically should work with single commits now

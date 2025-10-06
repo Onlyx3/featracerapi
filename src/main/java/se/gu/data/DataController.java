@@ -601,6 +601,19 @@ public class DataController {
 
     }
 
+    public List<String> getDistinctFeatureList(String project) throws SQLException {
+        String sql = "SELECT DISTINCT featurename FROM assetmapping WHERE project = ?";
+        PreparedStatement statement = connection.prepareStatement(sql);
+        statement.setString(1, project);
+
+        ResultSet rs = statement.executeQuery();
+        List<String> features = new ArrayList<>();
+        while(rs.next()){
+            features.add(rs.getString("featurename"));
+        }
+        return features;
+    }
+
     public List<AssetMetricsDB> getCCCForCommit(int commitIndex, String project) throws SQLException {
 
         String sql = "SELECT COUNT(*) AS CCC, commitHash from assets WHERE commitIndex <= ? AND project = ? GROUP BY commitHash";

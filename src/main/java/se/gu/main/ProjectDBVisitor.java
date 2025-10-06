@@ -54,7 +54,7 @@ public class ProjectDBVisitor implements CommitVisitor {
             count++;
             commitIndex = count;// commitHashes.indexOf(commit.getHash()) + 1;
             int startingCommitIndex = projectData.getConfiguration().getStartingCommitIndex();
-            if(commitIndex <startingCommitIndex){
+            if(commitIndex + 1 < startingCommitIndex){
                 return;
             }
             System.out.printf("Processing commit %d/%d: %s ", count, commitCount,commit.getHash());
@@ -102,16 +102,17 @@ public class ProjectDBVisitor implements CommitVisitor {
                     pb.setExtraMessage(fileName);
                     if (modification.getType() == ModificationType.DELETE) {
                         File file = new File(fileName);
-                        dataController.assertInsert(file.getAbsolutePath(), file.getName(), file.getParent(), commit.getHash(), commitIndex, commit.getAuthor().getName(),
+                        if(file.exists()) dataController.assertInsert(file.getAbsolutePath(), file.getName(), file.getParent(), commit.getHash(), commitIndex, commit.getAuthor().getName(),
                                 AssetType.FILE.toString(), 0, 0, 0, projectName, modification.getType().name(), modification.getRemoved());
 
                     } else if (modification.getType() == ModificationType.RENAME) {
 
                         File file = new File(fileName);
-                        dataController.assertInsert(file.getAbsolutePath(), file.getName(), file.getParent(), commit.getHash(), commitIndex, commit.getAuthor().getName(),
-                                AssetType.FILE.toString(), 0, 0, 0, projectName, modification.getType().name(), modification.getAdded());
-                        dataController.renameAssetAndChildren(oldPath, fileName);
-
+                        if(file.exists()) {
+                            dataController.assertInsert(file.getAbsolutePath(), file.getName(), file.getParent(), commit.getHash(), commitIndex, commit.getAuthor().getName(),
+                                    AssetType.FILE.toString(), 0, 0, 0, projectName, modification.getType().name(), modification.getAdded());
+                            dataController.renameAssetAndChildren(oldPath, fileName);
+                        }
 
                     } else {
                         //just add
@@ -140,7 +141,16 @@ public class ProjectDBVisitor implements CommitVisitor {
         List<DiffBlock> blocks;
         if (diff.equalsIgnoreCase("-- TOO BIG --")) {
             //read current state of file
-            fileTextAsList = FileUtils.readLines(new File(fileName), projectData.getConfiguration().getTextEncoding());
+     //       fileTextAsList = FileUtils.readLines(new File(fileName), projectData.getConfiguration().getTextEncoding());
+            File file = new File(fileName);
+            if(file.exists()) {
+                try {
+                    fileTextAsList = FileUtils.readLines(file, projectData.getConfiguration().getTextEncoding());
+                } catch (IOException e) {
+                    System.err.println("Error reading file: " + file.getAbsolutePath());
+                    return;
+                }
+            }
 
         } else {
             //pass the diff
@@ -179,6 +189,7 @@ public class ProjectDBVisitor implements CommitVisitor {
         } else {
             //add the file as asset
             File file = new File(fileName);
+//            if(!file.exists()) return;
             dataController.assertInsert(file.getAbsolutePath(), file.getName(), file.getParent(), commit.getHash(), commitIndex, commit.getAuthor().getName(),
                     AssetType.FILE.toString(), 0, 0, 0, projectName, modification.getType().name(), fileTextAsList.size());
             //map fragments and lines of code

@@ -51,7 +51,7 @@ public class RecommendationService {
             return new HashMap<>();
         }
 
-        int i = fullCommitList.size() - 1;
+        int i = fullCommitList.size() - 2; //TODO: -2?? NVM JUST GET THE RELEVANT COMMIT INDEX
         Commit relevantCommit = fullCommitList.get(i);
 
         for(String assetType : assetTypes){
@@ -82,13 +82,18 @@ public class RecommendationService {
                 }
 
                 Instances unlabeledData = getUnlabeledData(dataSetRecord.getTestFile());
-                int numInstances = unlabeledData.numInstances();
                 File assetMappingsFile = new File(dataSetRecord.getTestCSVFile());
                 if(!assetMappingsFile.exists()) continue;
 
                 List<String> assetMappings = FileUtils.readLines(assetMappingsFile, config.getTextEncoding());
-                List<String> instanceNames = assetMappings.parallelStream().map(m -> m.split(";")[0]).collect(Collectors.toList());
-
+                List<String> instanceNames = assetMappings.parallelStream()
+                        .filter(l -> {
+                            String[] parts = l.split(";", -1);
+                            return parts.length < 2 || parts[1].trim().isEmpty();
+                        })
+                        .map(m -> m.split(";")[0])
+                        .collect(Collectors.toList());
+            int numInstances = instanceNames.size();
                 RAkELd learner = new  RAkELd(new LabelPowerset(new J48()));
 
                 ClassifierRecord classifierRecord = new ClassifierRecord();
@@ -104,6 +109,7 @@ public class RecommendationService {
                     List<String> predictedFeatures = getRetrievedFeatures(List.of(trainingDataSet.getLabelNames()), output.getBipartition());
 
                     if(!predictedFeatures.isEmpty()) allRecommendations.put(instanceName, predictedFeatures);
+                    else allRecommendations.put(instanceName, null);
                 }
 
             }
@@ -112,7 +118,8 @@ public class RecommendationService {
             }
 
         for (Map.Entry<String, List<String>> entry : allRecommendations.entrySet()) {
-            System.out.println(entry.getKey() + " :::: "  + entry.getValue().toString());
+            if(entry.getValue() == null) System.out.println(entry.getKey() + ":::: NoAnnotations");
+            else System.out.println(entry.getKey() + " :::: "  + entry.getValue().toString());
         }
             return allRecommendations;
     }
